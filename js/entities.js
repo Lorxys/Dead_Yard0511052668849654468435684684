@@ -11,7 +11,7 @@ class Player {
   constructor(id, x, y) {
     this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
     this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {}; this.upgraded = false;
-    this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.inv = 0; this.flash = 0; this.walk = 0;
+    this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.hurtT = 0; this.flash = 0; this.walk = 0;
   }
   // caractéristiques modifiées par les atouts achetés
   get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
@@ -28,7 +28,7 @@ class Player {
     let mv = intent.move, m = Math.hypot(mv.x, mv.y);
     if (m > 1) { mv = { x: mv.x / m, y: mv.y / m }; m = 1; }
     moveEntity(this, mv.x * this.speed * dt, mv.y * this.speed * dt);
-    this.walk += m * dt * 8; this.cd -= dt; this.inv -= dt; this.flash -= dt;
+    this.walk += m * dt * 8; this.cd -= dt; this.hurtT -= dt; this.flash -= dt;
     // régénération : la vie remonte petit à petit si le joueur n'a pas été touché depuis un moment
     this.sinceHit += dt;
     if (this.sinceHit >= this.regenDelay) this.hp = Math.min(this.maxHp, this.hp + this.regenRate * dt);
@@ -36,7 +36,8 @@ class Player {
     if (aim && Math.hypot(aim.x, aim.y) > 0.1) this.a = Math.atan2(aim.y, aim.x);
     else if (m > 0.2) this.a = Math.atan2(mv.y, mv.x);
     if (intent.fire && this.cd <= 0) {
-      this.cd = this.fireRate; this.flash = 0.05;
+      // le reste du délai est reporté pour que la cadence réelle suive exactement fireRate malgré le pas fixe
+      this.cd = (this.cd > -dt ? this.cd : 0) + this.fireRate; this.flash = 0.05;
       const a = this.a + (Math.random() - 0.5) * 0.08, v = CFG.PLAYER.bulletSpeed;
       world.bullets.push({ id: nextId++, owner: this.id, dmg: this.damage, x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
       world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a });
@@ -48,15 +49,15 @@ class Player {
     }
     if (intent.buy) world.buyPerk(this);
   }
-  // renvoie true si le coup a porté (pas pendant l'invincibilité)
+  // renvoie true si le coup a porté ; pas d'invincibilité (hurtT sert seulement au clignotement)
   hurt(dmg) {
-    if (this.inv > 0 || !this.alive) return false;
-    this.hp -= dmg; this.inv = 1; this.sinceHit = 0;
+    if (!this.alive) return false;
+    this.hp -= dmg; this.hurtT = 0.4; this.sinceHit = 0;
     if (this.hp <= 0) this.alive = false;
     return true;
   }
   draw(c, cam) {
-    if (!this.alive || (this.inv > 0 && Math.floor(this.inv * 14) % 2)) return;
+    if (!this.alive || (this.hurtT > 0 && Math.floor(this.hurtT * 14) % 2)) return;
     Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0 });
   }
 }
@@ -90,7 +91,7 @@ class Zombie {
     this.t += dt; this.hit -= dt; this.cd -= dt;
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) {
       if (p.hurt(CFG.ZOMBIE.dmg)) world.emit('hurt', { id: p.id, x: p.x, y: p.y });
-      this.cd = CFG.ZOMBIE.dmgCd;
+      this.cd = CFG.ZOMBIE.dmgCd;   // ce zombie ne peut plus frapper pendant 1 s
     }
   }
   draw(c, cam) {

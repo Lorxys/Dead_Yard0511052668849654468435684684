@@ -47,7 +47,7 @@ fois. Le premier coûte 2500 points, et le prix augmente de 500 à chaque achat 
 - Rouge, Blindage : 250 PV max
 - Bleue, Second Souffle : régénération après 2 s au lieu de 3, deux fois plus rapide
 - Orange, Pied Léger : déplacement x1,5
-- Jaune, Double Détente : cadence de tir x2
+- Jaune, Double Détente : cadence de tir x1,7
 
 Machine d'amélioration d'arme (en bas de la map, violette) : 5000 points, achat unique. L'arme en main fait
 2 fois plus de dégâts (balles traçantes violettes). Son prix ne dépend pas des atouts achetés.

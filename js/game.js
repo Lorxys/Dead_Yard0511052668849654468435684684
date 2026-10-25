@@ -395,7 +395,7 @@ const Game = {
       c.fillRect(Math.round(tg.x - cam.x) - 1, Math.round(tg.y - cam.y), 3, 1); c.fillRect(Math.round(tg.x - cam.x), Math.round(tg.y - cam.y) - 1, 1, 3);
     }
     // voile rouge quand on prend un coup
-    if (p.inv > 0.6) { c.fillStyle = `rgba(150,0,0,${(p.inv - 0.6) * 0.9})`; c.fillRect(0, 0, this.W, this.H); }
+    if (p.hurtT > 0) { c.fillStyle = `rgba(150,0,0,${p.hurtT * 0.9})`; c.fillRect(0, 0, this.W, this.H); }
   },
   loop(t) {
     const dt = Math.min(0.25, (t - this.last) / 1000); this.last = t;
