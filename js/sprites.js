@@ -109,6 +109,47 @@ const Sprites = {
     c.fillStyle = '#ff3020'; c.fillRect(Math.round(x), Math.round(y) - 5 - Math.round(z), 1, 1);
   },
 
+  // icônes des atouts (7x7) : cœur, croix de soin, double chevron, deux balles
+  PERK_ICONS: {
+    health: ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
+    regen:  ['..XXX..', '..XXX..', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '..XXX..', '..XXX..'],
+    speed:  ['X..X...', '.X..X..', '..X..X.', '...X..X', '..X..X.', '.X..X..', 'X..X...'],
+    fire:   ['.X...X.', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX']
+  },
+  // teintes des machines : corps, ombre, reflet, lueur (r,g,b)
+  PERK_PAL: {
+    health: ['#8e1a16', '#5a0e0c', '#c43a2a', '255,60,40'],
+    regen:  ['#1e4a9a', '#10285a', '#3a78d8', '60,130,255'],
+    speed:  ['#b85a14', '#6e3008', '#ff8a2a', '255,140,40'],
+    fire:   ['#b89a14', '#6e5a08', '#ffd84a', '255,215,60']
+  },
+  perkIcon(c, x, y, perk, col) {
+    c.fillStyle = col;
+    this.PERK_ICONS[perk].forEach((row, j) => { for (let i = 0; i < 7; i++) if (row[i] === 'X') c.fillRect(x + i, y + j, 1, 1); });
+  },
+  // machine à atout : (x, y) = coin haut-gauche de sa case ; elle dépasse sur le mur au-dessus (vue 3/4)
+  perkMachine(c, x, y, perk) {
+    const [main, dark, light] = this.PERK_PAL[perk], F = rectFn(c, Math.round(x) + 1, Math.round(y) - 12);
+    F('rgba(0,0,0,.45)', -1, 27, 16, 2);
+    F(main, 0, 4, 14, 23); F(light, 0, 4, 2, 23); F(dark, 12, 4, 2, 23);
+    F('#2a2a2a', 0, 4, 14, 1); F('#1a1a1a', 0, 26, 14, 1);
+    F('#140808', -1, 0, 16, 5); F(main, 0, 1, 14, 3);                  // enseigne (allumée dans perkMachineLit)
+    F('#140808', 2, 7, 10, 10);                                          // vitrine
+    this.perkIcon(c, Math.round(x) + 2 + 2, Math.round(y) - 12 + 8 + 1, perk, light);
+    F('#c8b060', 11, 18, 2, 3); F('#5a4a20', 11, 20, 2, 1);              // fente à pièces
+    F('#0a0505', 2, 20, 8, 4); F(light, 5, 21, 2, 3); F('#ffffff', 5, 21, 1, 1);   // trappe + bouteille
+    F('#5a0808', 1, 15, 1, 3); F('#7a0c0c', 12, 9, 1, 2); F('#4a0606', 9, 24, 3, 1); // sang séché
+  },
+  // enseigne et icône lumineuses (redessinées par-dessus l'obscurité), qui grésillent par moments
+  perkMachineLit(c, x, y, perk, t) {
+    const [, , light, glow] = this.PERK_PAL[perk], bx = Math.round(x) + 1, by = Math.round(y) - 12;
+    const on = Math.sin(t * 2.3 + bx) > -0.92;
+    c.fillStyle = on ? light : this.PERK_PAL[perk][1]; c.fillRect(bx, by + 1, 14, 3);
+    c.fillStyle = on ? '#ffffff' : light; c.fillRect(bx + 2, by + 2, 10, 1);
+    this.perkIcon(c, bx + 3, by + 9, perk, on ? light : this.PERK_PAL[perk][0]);
+    return on ? glow : null;
+  },
+
   // cadavre allongé, peint une fois pour toutes sur le sol de la map
   corpse(g, x, y, v) {
     x = Math.round(x); y = Math.round(y);

@@ -1,6 +1,6 @@
 // Joueurs et zombies
 let nextId = 1;   // identifiant unique de chaque zombie/balle (pour les synchroniser en réseau plus tard)
-const NO_INTENT = { move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null };
+const NO_INTENT = { move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null, buy: false };
 
 function moveEntity(e, dx, dy) {
   if (!GameMap.blocked(e.x + dx, e.y, e.r)) e.x += dx;
@@ -10,25 +10,32 @@ function moveEntity(e, dx, dy) {
 class Player {
   constructor(id, x, y) {
     this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
-    this.grenades = CFG.GRENADE.start; this.gcd = 0;
+    this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {};
     this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.inv = 0; this.flash = 0; this.walk = 0;
   }
-  // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur) }
+  // caractéristiques modifiées par les atouts achetés
+  get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
+  get fireRate() { return CFG.PLAYER.fireRate / (this.perks.fire ? CFG.PERKS.fire.mult : 1); }
+  get regenDelay() { return this.perks.regen ? CFG.PERKS.regen.delay : CFG.PLAYER.regenDelay; }
+  get regenRate() { return this.perks.regen ? CFG.PERKS.regen.rate : CFG.PLAYER.regenRate; }
+  // prix du prochain atout : augmente à chaque atout déjà acheté
+  get perkPrice() { return CFG.PERK_PRICE.start + CFG.PERK_PRICE.step * Object.keys(this.perks).length; }
+  // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur), buy }
   // vient du clavier/tactile en local, du réseau plus tard
   update(dt, intent, world) {
     if (!this.alive) return;
     let mv = intent.move, m = Math.hypot(mv.x, mv.y);
     if (m > 1) { mv = { x: mv.x / m, y: mv.y / m }; m = 1; }
-    moveEntity(this, mv.x * CFG.PLAYER.speed * dt, mv.y * CFG.PLAYER.speed * dt);
+    moveEntity(this, mv.x * this.speed * dt, mv.y * this.speed * dt);
     this.walk += m * dt * 8; this.cd -= dt; this.inv -= dt; this.flash -= dt;
     // régénération : la vie remonte petit à petit si le joueur n'a pas été touché depuis un moment
     this.sinceHit += dt;
-    if (this.sinceHit >= CFG.PLAYER.regenDelay) this.hp = Math.min(this.maxHp, this.hp + CFG.PLAYER.regenRate * dt);
+    if (this.sinceHit >= this.regenDelay) this.hp = Math.min(this.maxHp, this.hp + this.regenRate * dt);
     const aim = intent.aim;
     if (aim && Math.hypot(aim.x, aim.y) > 0.1) this.a = Math.atan2(aim.y, aim.x);
     else if (m > 0.2) this.a = Math.atan2(mv.y, mv.x);
     if (intent.fire && this.cd <= 0) {
-      this.cd = CFG.PLAYER.fireRate; this.flash = 0.05;
+      this.cd = this.fireRate; this.flash = 0.05;
       const a = this.a + (Math.random() - 0.5) * 0.08, v = CFG.PLAYER.bulletSpeed;
       world.bullets.push({ id: nextId++, owner: this.id, x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
       world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a });
@@ -38,6 +45,7 @@ class Player {
       this.grenades--; this.gcd = CFG.GRENADE.cooldown;
       world.throwGrenade(this, intent.grenade);
     }
+    if (intent.buy) world.buyPerk(this);
   }
   // renvoie true si le coup a porté (pas pendant l'invincibilité)
   hurt(dmg) {

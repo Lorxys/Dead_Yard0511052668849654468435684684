@@ -3,7 +3,7 @@
 // Organisation prévue pour un futur mode multijoueur :
 // - step()     : la simulation (joueurs, zombies, balles, vagues). Elle ne touche ni à l'écran ni au DOM ;
 //                c'est la partie qui tournera sur l'hôte/serveur.
-// - intentions : chaque joueur est piloté par { move, aim, fire }. Aujourd'hui elle vient du clavier/tactile
+// - intentions : chaque joueur est piloté par { move, aim, fire, grenade, buy }. Aujourd'hui elle vient du clavier/tactile
 //                (readLocalIntent), demain elle pourra arriver du réseau pour les autres joueurs.
 // - emit()     : la simulation signale ce qui se passe (tir, impact, mort...) sous forme d'événements ;
 //                onEvent() en fait du sang, des secousses, des bannières. En réseau, ce sont ces événements
@@ -22,6 +22,10 @@ const Game = {
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
     bar.style.setProperty('--seg', CFG.ZOMBIE.dmg / CFG.PLAYER.hp * 100 + '%');
     this.gStick = document.getElementById('sG'); this.gCount = document.getElementById('nadeCount');
+    // panneau d'achat devant une machine à atout + icônes des atouts possédés
+    this.buy = { box: document.getElementById('buy'), name: document.getElementById('buyName'), btn: document.getElementById('buyBtn'), price: document.getElementById('buyPrice') };
+    this.buy.btn.addEventListener('pointerdown', e => { e.preventDefault(); Input.buyQueue = true; });
+    this.perkBox = document.getElementById('perks'); this.shownPerks = '';
     this.resize(); addEventListener('resize', () => this.resize());
     GameMap.init(); Input.init(document.getElementById('touch'));
     document.getElementById('restart').onclick = () => this.reset();
@@ -105,6 +109,16 @@ const Game = {
     this.nades.push({ id: nextId++, owner: p.id, sx: p.x, sy: p.y, tx: tg.x, ty: tg.y, x: p.x, y: p.y, z: 0, t: 0 });
     this.emit('throw', { id: p.id, x: p.x, y: p.y });
   },
+  // achat de l'atout de la machine devant laquelle se tient le joueur (les points servent de monnaie)
+  buyPerk(p) {
+    const m = GameMap.nearMachine(p); if (!m) return;
+    const def = CFG.PERKS[m.perk], price = p.perkPrice;
+    if (p.perks[m.perk]) return;   // un atout ne s'achète qu'une fois
+    if (p.score < price) { this.emit('buyfail', { id: p.id, perk: m.perk }); return; }
+    p.score -= price; p.perks[m.perk] = true;
+    if (def.maxHp) { p.hp += def.maxHp - p.maxHp; p.maxHp = def.maxHp; }
+    this.emit('perk', { id: p.id, perk: m.perk, x: p.x, y: p.y });
+  },
   // inflige des dégâts à un zombie et donne les points au joueur responsable
   damageZombie(z, dmg, ownerId) {
     z.hp -= dmg; z.hit = 0.08;
@@ -182,7 +196,7 @@ const Game = {
     }
     const q = Input.takeGrenade();
     const grenade = !q ? null : q.screen ? this.screenToRel(q.screen, p) : this.stickToRel(q.stick);
-    return { move: Input.getMove(), aim, fire: !!(aim && aim.fire), grenade };
+    return { move: Input.getMove(), aim, fire: !!(aim && aim.fire), grenade, buy: Input.takeBuy() };
   },
   screenToRel(s, p) {
     const r = this.cv.getBoundingClientRect(), k = this.W / r.width;
@@ -242,6 +256,19 @@ const Game = {
         const me = this.me; if (me && Math.hypot(me.x - e.x, me.y - e.y) < 160) this.shake = 0.45;
         break;
       }
+      case 'perk': {   // atout acheté : bannière à la couleur de la machine + gerbe d'étincelles
+        const def = CFG.PERKS[e.perk], b = document.getElementById('banner');
+        if (e.id === this.localId) {
+          b.textContent = def.name.toUpperCase(); b.style.color = def.color; b.classList.add('show');
+          setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 1800);
+        }
+        this.blood(e.x, e.y - 6, 30, def.color, false);
+        this.lights.push({ x: e.x, y: e.y, t: 0.4 });
+        break;
+      }
+      case 'buyfail':
+        if (e.id === this.localId) { this.buy.box.classList.remove('nope'); void this.buy.box.offsetWidth; this.buy.box.classList.add('nope'); }
+        break;
       case 'gameover':
         document.body.classList.remove('playing');
         document.getElementById('final').textContent = `Vague ${e.wave} · Score ${e.score}`;
@@ -264,21 +291,50 @@ const Game = {
     // caméra sur le joueur local (centrée si la map est plus petite que l'écran) + secousse
     const mw = CFG.MW * CFG.TILE, mh = CFG.MH * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
     this.cam.x = Math.round((mw <= this.W ? (mw - this.W) / 2 : Math.max(0, Math.min(mw - this.W, p.x - this.W / 2))) + (Math.random() - 0.5) * sk);
-    this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(0, Math.min(mh - this.H, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
+    // en haut de la map, on garde une marge de 22 px sous le HUD pour bien voir les machines à atout
+    this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(-22, Math.min(mh - this.H, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
     // barre de vie : le fantôme rattrape la vie réelle en douceur pour montrer les dégâts encaissés
     const hp = Math.max(0, p.hp);
     this.ghostHp = hp > this.ghostHp ? hp : Math.max(hp, this.ghostHp - 90 * dt);
     this.hpFill.style.width = hp / p.maxHp * 100 + '%'; this.hpGhost.style.width = this.ghostHp / p.maxHp * 100 + '%';
     this.hpText.textContent = Math.ceil(hp);
-    this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= CFG.PLAYER.regenDelay);
+    this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= p.regenDelay);
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
-    this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = this.score;
+    this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
+    this.hpBar.style.setProperty('--seg', CFG.ZOMBIE.dmg / p.maxHp * 100 + '%');
+    // bouton « Acheter » posé sur la machine devant laquelle se tient le joueur, prix en dessous ;
+    // il n'apparaît pas pour un atout déjà acheté
+    const m = p.alive && GameMap.nearMachine(p), B = this.buy, show = !!m && !p.perks[m.perk];
+    B.box.classList.toggle('show', show);
+    if (show) {
+      const r = this.cv.getBoundingClientRect(), k = r.width / this.W, def = CFG.PERKS[m.perk], price = p.perkPrice;
+      B.box.style.left = r.left + ((m.tx + 0.5) * CFG.TILE - this.cam.x) * k + 'px';
+      B.box.style.top = r.top + (m.ty * CFG.TILE + 8 - this.cam.y) * k + 'px';
+      B.name.textContent = def.name; B.name.style.color = def.color;
+      B.price.textContent = price + ' pts';
+      B.box.classList.toggle('poor', p.score < price);
+    }
+    // icônes des atouts possédés, sous la barre de vie
+    const key = Object.keys(p.perks).join();
+    if (key !== this.shownPerks) {
+      this.shownPerks = key; this.perkBox.textContent = '';
+      Object.keys(p.perks).forEach(k => { const cv = document.createElement('canvas'); this.drawPerkIcon(cv, k); this.perkBox.appendChild(cv); });
+    }
+  },
+  // icône d'atout (9x9 pixels : fond sombre bordé de la couleur, symbole au centre), agrandie en CSS
+  drawPerkIcon(cv, perk) {
+    cv.width = cv.height = 9;
+    const g = cv.getContext('2d'), [main, dark, light] = Sprites.PERK_PAL[perk];
+    g.fillStyle = main; g.fillRect(0, 0, 9, 9); g.fillStyle = dark; g.fillRect(1, 1, 7, 7);
+    Sprites.perkIcon(g, 1, 1, perk, light);
   },
   draw(t) {
     const c = this.c, cam = this.cam, p = this.me;
     if (this.state === 'menu' || !p) return MenuScene.draw(c, t);
     c.fillStyle = '#0a0806'; c.fillRect(0, 0, this.W, this.H);
     GameMap.draw(c, cam);
+    const T = CFG.TILE;
+    GameMap.machines.forEach(m => Sprites.perkMachine(c, m.tx * T - cam.x, m.ty * T - cam.y, m.perk));
     [...this.zs, ...this.players].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
     this.nades.forEach(n => Sprites.grenade(c, n.x - cam.x, n.y - cam.y, n.z));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
@@ -288,6 +344,14 @@ const Game = {
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(6,2,3,.35)');
     gr.addColorStop(1, low ? `rgba(45,0,0,${0.85 + Math.sin(t / 150) * 0.08})` : 'rgba(6,2,3,.86)');
     c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
+    // machines à atout : enseignes allumées et halo coloré qui percent la nuit
+    GameMap.machines.forEach(m => {
+      const x = m.tx * T - cam.x, y = m.ty * T - cam.y, glow = Sprites.perkMachineLit(c, x, y, m.perk, t / 1000);
+      if (!glow) return;
+      const cx = x + 8, cy = y - 4, r = 34 + Math.sin(t / 400 + m.tx) * 3, g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `rgba(${glow},.32)`); g.addColorStop(1, `rgba(${glow},0)`);
+      c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(cx - r, cy - r, r * 2, r * 2); c.globalCompositeOperation = 'source-over';
+    });
     // yeux des zombies et balles traçantes visibles dans le noir
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));
     this.bullets.forEach(b => {

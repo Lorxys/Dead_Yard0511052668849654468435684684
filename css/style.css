@@ -37,6 +37,22 @@ body:not(.playing) #hpbar{visibility:hidden}
 #banner{position:fixed;top:28%;left:0;right:0;text-align:center;font-size:clamp(16px,4vw,28px);letter-spacing:4px;color:#c41a14;text-shadow:3px 3px 0 #000,0 0 16px rgba(200,0,0,.6);opacity:0;transition:opacity .4s;pointer-events:none}
 #banner.show{opacity:1}
 
+/* ---- Atouts : icônes possédées dans le HUD + panneau d'achat devant une machine ---- */
+#perks{display:flex;gap:6px}
+#perks canvas{width:20px;height:20px;image-rendering:pixelated;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+/* bouton d'achat posé sur la machine (positionné en JS), nom de l'atout au-dessus, prix en dessous */
+#buy{position:fixed;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:4px;text-align:center;pointer-events:none}
+body.playing #buy.show{display:flex}
+#buy.nope{animation:nope .3s steps(2)}
+@keyframes nope{25%{transform:translate(calc(-50% - 4px),-50%)}75%{transform:translate(calc(-50% + 4px),-50%)}}
+#buyName{font-size:8px;font-weight:normal;white-space:nowrap;text-shadow:1px 1px 0 #000,0 0 6px #000}
+#buy button{pointer-events:auto;font-size:8px;padding:7px 9px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+#buy button small{font-size:7px;padding:2px 3px;background:#120000;color:#c9b48a}
+@media (pointer:coarse){#buy button small{display:none}}
+#buyPrice{font-size:8px;color:#ffd84a;padding:3px 5px;background:rgba(10,4,4,.85);box-shadow:0 0 0 2px #000;white-space:nowrap}
+#buy.poor button{filter:grayscale(.8) brightness(.6)}
+#buy.poor #buyPrice{color:#c41a14}
+
 /* ---- Coulures de sang (réglées par --l position, --w largeur, --h longueur, --s durée, --d délai) ---- */
 .drip{position:absolute;top:100%;left:var(--l);width:var(--w,5px);height:0;background:linear-gradient(90deg,#a81010,#6a0606);pointer-events:none;
   animation:drip var(--s,4s) steps(10) var(--d,0s) infinite}

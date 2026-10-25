@@ -16,9 +16,9 @@ Zombie shooter pixel art vu du dessus, jouable sur mobile (Android/iOS) et PC.
 Le jeu est solo, mais le code est organisé pour accueillir un mode multijoueur plus tard :
 - **Simulation séparée de l'affichage** : `Game.step()` fait avancer le monde (joueurs, zombies, balles, vagues)
   sans toucher à l'écran. C'est la partie qui tournera chez l'hôte ou sur un serveur.
-- **Intentions** : chaque joueur est piloté par `{ move, aim, fire, grenade }`. En local elle vient de `readLocalIntent()` ;
+- **Intentions** : chaque joueur est piloté par `{ move, aim, fire, grenade, buy }`. En local elle vient de `readLocalIntent()` ;
   pour un joueur distant, elle viendra du réseau.
-- **Événements** : la simulation émet `shoot`, `throw`, `explode`, `impact`, `hit`, `kill`, `hurt`, `wave`, `gameover` ;
+- **Événements** : la simulation émet `shoot`, `throw`, `explode`, `impact`, `hit`, `kill`, `hurt`, `perk`, `buyfail`, `wave`, `gameover` ;
   `onEvent()` les transforme en sang, secousses, bannières. Ce sont eux qu'on enverra aux autres joueurs.
 - **Plusieurs joueurs** : `Game.players` est une liste, `Game.localId` désigne le joueur de cette machine,
   `GameMap.playerSpawn(i)` donne un point d'apparition par joueur. Les zombies poursuivent le joueur vivant
@@ -41,3 +41,10 @@ Mobile : pouce gauche = bouger, pouce droit = viser et tirer,
 joystick grenade (à droite, au-dessus de la zone de tir) = glisser pour viser, relâcher pour lancer
 (plus on pousse, plus elle va loin ; un simple appui la lâche aux pieds du joueur).
 PC : ZQSD/WASD ou flèches pour bouger, clic maintenu pour viser et tirer, clic droit ou G = grenade vers le curseur.
+Machines à atout (en haut de la map) : en s'approchant, un bouton « Acheter » apparaît sur la machine avec le prix
+en dessous (toucher le bouton sur mobile, E sur PC). Les points servent de monnaie. Chaque atout ne s'achète qu'une
+fois. Le premier coûte 2500 points, et le prix augmente de 500 à chaque achat (3000, 3500, 4000).
+- Rouge, Blindage : 250 PV max
+- Bleue, Second Souffle : régénération après 2 s au lieu de 3, deux fois plus rapide
+- Orange, Pied Léger : déplacement x1,5
+- Jaune, Double Détente : cadence de tir x2
