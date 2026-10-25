@@ -1,13 +1,15 @@
 // Boucle principale : vagues, tirs, collisions, rendu, interface
 const Game = {
-  cam: { x: 0, y: 0 }, state: 'play',
+  cam: { x: 0, y: 0 }, state: 'menu', zs: [], bullets: [], fx: [],
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
     this.hud = { hp: document.getElementById('hp'), wave: document.getElementById('wave'), score: document.getElementById('score') };
     this.resize(); addEventListener('resize', () => this.resize());
     GameMap.init(); Input.init(document.getElementById('touch'));
     document.getElementById('restart').onclick = () => this.reset();
-    this.reset(); this.last = performance.now();
+    // menu : le jeu ne démarre qu'au clic sur Jouer
+    document.getElementById('play').onclick = () => { document.getElementById('menu').classList.remove('show'); this.reset(); };
+    this.last = performance.now();
     requestAnimationFrame(t => this.loop(t));
   },
   resize() {
@@ -80,7 +82,7 @@ const Game = {
     const c = this.c, cam = this.cam;
     c.fillStyle = '#101418'; c.fillRect(0, 0, this.W, this.H);
     GameMap.draw(c, cam);
-    [...this.zs, this.p].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
+    if (this.p) [...this.zs, this.p].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
     c.fillStyle = '#ffe066';
     this.bullets.forEach(b => c.fillRect(Math.round(b.x - cam.x) - 1, Math.round(b.y - cam.y) - 1, 2, 2));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), 1, 1); });
