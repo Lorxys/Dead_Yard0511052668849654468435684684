@@ -34,5 +34,5 @@ Le jeu est solo, mais le code est organisé pour accueillir un mode multijoueur 
 ## Contrôles
 Mobile : pouce gauche = bouger, pouce droit = viser et tirer,
 joystick grenade (à droite, au-dessus de la zone de tir) = glisser pour viser, relâcher pour lancer
-(un simple appui lance devant soi).
+(plus on pousse, plus elle va loin ; un simple appui la lâche aux pieds du joueur).
 PC : ZQSD/WASD ou flèches pour bouger, clic maintenu pour viser et tirer, clic droit ou G = grenade vers le curseur.

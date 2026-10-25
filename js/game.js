@@ -161,17 +161,17 @@ const Game = {
       aim = { x: (Input.mouse.x - r.left) * k + this.cam.x - p.x, y: (Input.mouse.y - r.top) * k + this.cam.y - p.y, fire: true };
     }
     const q = Input.takeGrenade();
-    const grenade = !q ? null : q.screen ? this.screenToRel(q.screen, p) : this.stickToRel(q.stick, p);
+    const grenade = !q ? null : q.screen ? this.screenToRel(q.screen, p) : this.stickToRel(q.stick);
     return { move: Input.getMove(), aim, fire: !!(aim && aim.fire), grenade };
   },
   screenToRel(s, p) {
     const r = this.cv.getBoundingClientRect(), k = this.W / r.width;
     return { x: (s.x - r.left) * k + this.cam.x - p.x, y: (s.y - r.top) * k + this.cam.y - p.y };
   },
-  // joystick grenade : la direction et l'inclinaison donnent la cible ; un simple appui lance devant soi
-  stickToRel(v, p) {
+  // joystick grenade : la direction et l'inclinaison donnent la cible ;
+  // centre = aux pieds du joueur (simple appui), poussé à fond = portée max
+  stickToRel(v) {
     const R = CFG.GRENADE.range;
-    if (Math.hypot(v.x, v.y) < 0.2) return { x: Math.cos(p.a) * R * 0.6, y: Math.sin(p.a) * R * 0.6 };
     return { x: v.x * R, y: v.y * R };
   },
 
@@ -281,7 +281,7 @@ const Game = {
     c.globalCompositeOperation = 'source-over';
     // visée de la grenade (joystick tactile) : trajectoire en pointillés + zone d'explosion
     if (Input.nadeDrag && p.alive && p.grenades > 0) {
-      const tg = this.nadeTarget(p, this.stickToRel(Input.nadeDrag, p)), dist = Math.hypot(tg.x - p.x, tg.y - p.y), R = CFG.GRENADE.radius;
+      const tg = this.nadeTarget(p, this.stickToRel(Input.nadeDrag)), dist = Math.hypot(tg.x - p.x, tg.y - p.y), R = CFG.GRENADE.radius;
       c.fillStyle = '#ffd23a';
       for (let i = 1; i < 16; i += 2) {
         const k = i / 16;
