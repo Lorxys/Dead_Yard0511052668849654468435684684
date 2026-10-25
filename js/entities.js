@@ -10,15 +10,16 @@ function moveEntity(e, dx, dy) {
 class Player {
   constructor(id, x, y) {
     this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
-    this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {}; this.upgraded = false;
+    this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {}; this.upgraded = false; this.weapon = CFG.PLAYER.weapon;
     this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.hurtT = 0; this.flash = 0; this.walk = 0;
   }
   // caractéristiques modifiées par les atouts achetés
   get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
-  get fireRate() { return CFG.PLAYER.fireRate / (this.perks.fire ? CFG.PERKS.fire.mult : 1); }
+  get gun() { return CFG.WEAPONS[this.weapon]; }   // arme en main
+  get fireRate() { return this.gun.rate / (this.perks.fire ? CFG.PERKS.fire.mult : 1); }
   get regenDelay() { return this.perks.regen ? CFG.PERKS.regen.delay : CFG.PLAYER.regenDelay; }
   get regenRate() { return this.perks.regen ? CFG.PERKS.regen.rate : CFG.PLAYER.regenRate; }
-  get damage() { return this.upgraded ? CFG.UPGRADE.mult : 1; }   // dégâts d'une balle (arme améliorée ou non)
+  get damage() { return this.upgraded ? CFG.UPGRADE.mult : 1; }   // multiplicateur de dégâts de l'arme en main (améliorée ou non)
   // prix du prochain atout : augmente à chaque atout déjà acheté
   get perkPrice() { return CFG.PERK_PRICE.start + CFG.PERK_PRICE.step * Object.keys(this.perks).length; }
   // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur), buy }
@@ -38,8 +39,13 @@ class Player {
     if (intent.fire && this.cd <= 0) {
       // le reste du délai est reporté pour que la cadence réelle suive exactement fireRate malgré le pas fixe
       this.cd = (this.cd > -dt ? this.cd : 0) + this.fireRate; this.flash = 0.05;
-      const a = this.a + (Math.random() - 0.5) * 0.08, v = CFG.PLAYER.bulletSpeed;
-      world.bullets.push({ id: nextId++, owner: this.id, dmg: this.damage, x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
+      // un tir = une balle, ou une gerbe de plombs pour le fusil à pompe
+      const g = this.gun, v = g.speed, k = this.damage;
+      for (let i = 0; i < (g.pellets || 1); i++) {
+        const a = this.a + (Math.random() - 0.5) * g.spread;
+        world.bullets.push({ id: nextId++, owner: this.id, up: this.upgraded, dmg: g.dmg * k, far: (g.far ?? g.dmg) * k, fall: g.fall, d: 0,
+          x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: g.range });
+      }
       world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a });
     }
     this.gcd -= dt;
@@ -58,7 +64,7 @@ class Player {
   }
   draw(c, cam) {
     if (!this.alive || (this.hurtT > 0 && Math.floor(this.hurtT * 14) % 2)) return;
-    Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0 });
+    Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0, weapon: this.weapon });
   }
 }
 

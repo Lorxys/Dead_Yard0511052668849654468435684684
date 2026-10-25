@@ -2,30 +2,38 @@
 const rectFn = (c, x, y) => (col, rx, ry, w, h) => { c.fillStyle = col; c.fillRect(x + rx, y + ry, w, h); };
 
 const Sprites = {
-  // fusil tenu à l'épaule et orienté selon a (crosse en bois, canon en acier)
-  rifle(F, a, skin, flash) {
-    const cs = Math.cos(a), sn = Math.sin(a);
-    for (let i = 0; i <= 13; i++) {
-      const px = Math.round(cs * i), py = Math.round(sn * i) - 3;
-      if (i < 7) F(i < 2 ? '#4e2c12' : '#6e4220', px - 1, py - 1, 2, 2);
-      else F(i === 13 ? '#0e0e10' : '#2b2b30', px, py, 1, 1);
+  // armes vues de profil : segments le long du canon [début, fin, couleur, épaisseur, décalage sous le canon]
+  // len = longueur (le départ du coup de feu), hands = positions des deux mains
+  GUNS: {
+    rifle:   { len: 13, hands: [3, 8], segs: [[0, 1, '#4e2c12', 2, 0], [2, 6, '#6e4220', 2, 0], [7, 12, '#2b2b30', 1, 0], [13, 13, '#0e0e10', 1, 0]] },
+    pistol:  { len: 9, hands: [5, 5], segs: [[5, 5, '#3a2414', 1, 1], [5, 5, '#3a2414', 1, 2], [4, 8, '#4c4c54', 1, 0], [9, 9, '#0e0e10', 1, 0]] },
+    smg:     { len: 13, hands: [4, 10], segs: [[0, 3, '#6e4220', 2, 0], [4, 9, '#2b2b30', 2, 0], [6, 7, '#1a1a1e', 2, 2], [10, 11, '#6e4220', 1, 1], [10, 12, '#2b2b30', 1, 0], [13, 13, '#0e0e10', 1, 0]] },
+    ar:      { len: 15, hands: [5, 11], segs: [[0, 3, '#4a3a26', 2, 0], [4, 10, '#3a3a40', 2, 0], [7, 7, '#2b2b30', 1, 2], [8, 8, '#2b2b30', 1, 3], [11, 14, '#2b2b30', 1, 0], [15, 15, '#0e0e10', 1, 0]] },
+    shotgun: { len: 15, hands: [4, 10], segs: [[0, 5, '#6e4220', 2, 0], [6, 14, '#3a3a40', 1, 0], [9, 11, '#8a5a2a', 1, 1], [15, 15, '#0e0e10', 1, 0]] },
+    sniper:  { len: 17, hands: [3, 9], segs: [[0, 1, '#4e2c12', 2, 0], [2, 7, '#6e4220', 2, 0], [8, 16, '#2b2b30', 1, 0], [5, 9, '#18181c', 1, -2], [5, 5, '#18181c', 1, -1], [9, 9, '#18181c', 1, -1], [17, 17, '#0e0e10', 1, 0]] }
+  },
+  // arme orientée selon a (y = -3 : hauteur des épaules) ; le chargeur reste toujours sous le canon
+  gun(F, a, skin, flash, w = 'rifle', y0 = -3) {
+    const G = this.GUNS[w], cs = Math.cos(a), sn = Math.sin(a), side = cs < 0 ? -1 : 1;
+    const at = (i, off) => [Math.round(cs * i - sn * off * side), Math.round(sn * i + cs * off * side) + y0];
+    for (const [from, to, col, th, off] of G.segs) for (let i = from; i <= to; i++) {
+      const [px, py] = at(i, off);
+      F(col, px - (th > 1 ? 1 : 0), py - (th > 1 ? 1 : 0), th, th);
     }
-    F(skin, Math.round(cs * 3) - 1, Math.round(sn * 3) - 4, 2, 2);
-    F(skin, Math.round(cs * 8) - 1, Math.round(sn * 8) - 4, 2, 2);
+    if (skin) for (const h of G.hands) { const [px, py] = at(h, 0); F(skin, px - 1, py - 1, 2, 2); }
     if (flash) {
-      const fx = Math.round(cs * 16), fy = Math.round(sn * 16) - 3;
+      const [fx, fy] = at(G.len + 3, 0);
       F('#ff8a1e', fx - 3, fy, 7, 1); F('#ff8a1e', fx, fy - 3, 1, 7); F('#ffe9a0', fx - 1, fy - 1, 3, 3);
     }
   },
-
-  // GI américain : veste M1941, casque M1, fusil
+  // GI américain : veste M1941, casque M1, arme en main (o.weapon)
   soldier(c, x, y, a, o) {
     x = Math.round(x); y = Math.round(y);
     const F = rectFn(c, x, y), cs = Math.cos(a), sn = Math.sin(a), back = sn < -0.35, skin = '#d9a478', l = o.step ? 1 : 0;
     F('rgba(0,0,0,.45)', -5, 6, 10, 2);
     F('#3d3b22', -3, 1, 3, 4 - l); F('#24180c', -3, 5 - l, 3, 2);   // jambes + bottes (une levée en marchant)
     F('#4a482a', 0, 1, 3, 3 + l); F('#24180c', 0, 4 + l, 3, 2);
-    if (sn < 0) this.rifle(F, a, skin, o.flash);
+    if (sn < 0) this.gun(F, a, skin, o.flash, o.weapon);
     F('#56552f', -4, -6, 8, 7); F('#6a6839', -4, -6, 2, 7); F('#42411f', 3, -6, 1, 7);
     F('#33301c', -3, -6, 1, 6); F('#33301c', 2, -6, 1, 6);           // bretelles
     F('#4a4630', -4, -1, 2, 1); F('#4a4630', 2, -1, 2, 1);           // cartouchières
@@ -40,7 +48,7 @@ const Sprites = {
     F('#4b562f', -3, -15, 6, 1); F('#4b562f', -4, -14, 8, 3); F('#606d3d', -3, -14, 3, 1);
     if (back) F('#4b562f', -4, -11, 8, 2);
     F('#37401f', -5, back ? -9 : -11, 10, 1);                       // bord du casque
-    if (sn >= 0) this.rifle(F, a, skin, o.flash);
+    if (sn >= 0) this.gun(F, a, skin, o.flash, o.weapon);
   },
 
   // soldat allemand mort-vivant : uniforme feldgrau déchiré, casque Stahlhelm, bras tendus
@@ -178,6 +186,42 @@ const Sprites = {
     this.perkIcon(c, bx + 12, by + 7, 'upgrade', on ? '#ffffff' : main);
     if (on && pulse > 0.85) { c.fillStyle = '#ffe0ff'; c.fillRect(bx + 8 + (t * 37 % 14 | 0), by + 6, 1, 1); }   // étincelle
     return on ? glow : null;
+  },
+
+  // boîte mystère : caisse de munitions enchaînée, 2 cases de large ; (x, y) = coin haut-gauche de sa première case
+  // open = couvercle relevé (pendant le tirage et tant que l'arme attend dans la boîte)
+  mysteryBox(c, x, y, open) {
+    const F = rectFn(c, Math.round(x), Math.round(y));
+    F('rgba(0,0,0,.45)', 0, 15, 32, 2);
+    F('#4a3018', 1, 6, 30, 9); F('#3a2410', 1, 9, 30, 1); F('#3a2410', 1, 12, 30, 1); F('#2a1a0a', 1, 14, 30, 1);   // face avant
+    F('#2a2a2e', 1, 6, 2, 9); F('#2a2a2e', 29, 6, 2, 9); F('#55555a', 1, 6, 1, 9);                                  // coins en fer
+    if (open) {
+      F('#6a4422', 1, -9, 30, 6); F('#80562c', 1, -9, 30, 1); F('#5a381a', 1, -6, 30, 1); F('#2a2a2e', 1, -4, 30, 1);  // couvercle relevé
+      F('#2a1a0a', 1, -3, 30, 9); F('#0c0604', 3, -2, 26, 7);                                                         // intérieur
+    } else {
+      F('#6a4422', 1, -2, 30, 8); F('#80562c', 1, -2, 30, 1); F('#5a381a', 1, 1, 30, 1); F('#5a381a', 1, 4, 30, 1);  // couvercle
+      F('#2a2a2e', 15, -2, 2, 8);
+      for (let i = 0; i < 6; i++) { F('#77706a', 4 + i * 2, -1 + i, 2, 1); F('#77706a', 26 - i * 2, -1 + i, 2, 1); }   // chaînes
+      F('#a89a70', 14, 3, 4, 3); F('#5a4a20', 15, 4, 2, 1);                                                          // cadenas
+    }
+    F('#6a0a0a', 4, 11, 3, 1); F('#5a0808', 24, 7, 1, 3); F('#7a0c0c', 20, 13, 2, 1);                                 // sang
+  },
+  // « ? » lumineux sur la boîte, et quand elle est ouverte : faisceau de lumière et arme qui flotte au-dessus
+  // st = { open, weapon (arme montrée ou null), rise (0-1), hide (clignote quand l'arme va disparaître) }
+  mysteryBoxLit(c, x, y, t, st) {
+    const bx = Math.round(x), by = Math.round(y), on = Math.sin(t * 2.1 + 1) > -0.9;
+    const Q = ['XXX', '..X', '.X.', '...', '.X.'];
+    c.fillStyle = on ? '#8ad4ff' : '#2a4a60';
+    for (const qx of [5, 14, 23]) Q.forEach((row, j) => { for (let i = 0; i < 3; i++) if (row[i] === 'X') c.fillRect(bx + qx + i, by + 8 + j, 1, 1); });
+    if (!st.open) return on ? '120,200,255' : null;
+    const g = c.createLinearGradient(0, by - 46, 0, by + 2);
+    g.addColorStop(0, 'rgba(140,210,255,0)'); g.addColorStop(1, 'rgba(170,225,255,.55)');
+    c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(bx + 2, by - 46, 28, 48); c.globalCompositeOperation = 'source-over';
+    if (st.weapon && !st.hide) {   // arme dessinée en double taille pour bien la reconnaître
+      const G = this.GUNS[st.weapon], ox = bx + 16 - G.len, oy = by - 6 - Math.round(st.rise * 16 + Math.sin(t * 3) * 1.5);
+      this.gun((col, rx, ry, w, h) => { c.fillStyle = col; c.fillRect(ox + rx * 2, oy + ry * 2, w * 2, h * 2); }, 0, null, false, st.weapon, 0);
+    }
+    return '120,200,255';
   },
 
   // cadavre allongé, peint une fois pour toutes sur le sol de la map

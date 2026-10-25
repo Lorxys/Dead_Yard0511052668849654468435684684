@@ -18,7 +18,7 @@ Le jeu est solo, mais le code est organisé pour accueillir un mode multijoueur 
   sans toucher à l'écran. C'est la partie qui tournera chez l'hôte ou sur un serveur.
 - **Intentions** : chaque joueur est piloté par `{ move, aim, fire, grenade, buy }`. En local elle vient de `readLocalIntent()` ;
   pour un joueur distant, elle viendra du réseau.
-- **Événements** : la simulation émet `shoot`, `throw`, `explode`, `impact`, `hit`, `kill`, `hurt`, `perk`, `buyfail`, `wave`, `gameover` ;
+- **Événements** : la simulation émet `shoot`, `throw`, `explode`, `impact`, `hit`, `kill`, `hurt`, `perk`, `buyfail`, `boxopen`, `boxready`, `pickup`, `boxclose`, `wave`, `gameover` ;
   `onEvent()` les transforme en sang, secousses, bannières. Ce sont eux qu'on enverra aux autres joueurs.
 - **Plusieurs joueurs** : `Game.players` est une liste, `Game.localId` désigne le joueur de cette machine,
   `GameMap.playerSpawn(i)` donne un point d'apparition par joueur. Les zombies poursuivent le joueur vivant
@@ -49,5 +49,16 @@ fois. Le premier coûte 2500 points, et le prix augmente de 500 à chaque achat 
 - Orange, Pied Léger : déplacement x1,5
 - Jaune, Double Détente : cadence de tir x1,7
 
-Machine d'amélioration d'arme (en bas de la map, violette) : 5000 points, achat unique. L'arme en main fait
-2 fois plus de dégâts (balles traçantes violettes). Son prix ne dépend pas des atouts achetés.
+Machine d'amélioration d'arme (en bas de la map, violette) : 5000 points. L'arme en main fait 2 fois plus de dégâts
+(balles traçantes violettes). L'amélioration est liée à l'arme : en prenant une autre arme dans la boîte mystère, on la
+perd et il faut la racheter. Son prix ne dépend pas des atouts achetés. Double Détente, elle, s'applique à toutes les armes.
+
+Boîte mystère (à gauche de la map) : 950 points pour une arme au hasard (jamais celle qu'on a déjà en main).
+Les armes défilent dans la boîte puis s'arrêtent sur l'arme tirée ; elle reste dans la boîte et il faut appuyer
+sur « Prendre » pour l'avoir en main (une seule arme à la fois). Sans réponse au bout de 12 s, elle repart dans la boîte.
+- M1 Garand (arme de départ) : polyvalent
+- Colt M1911 (pistolet) : dégâts moyens à toute distance
+- Thompson (pistolet-mitrailleur) : tire très vite, très fort de près, faible de loin
+- StG 44 (fusil d'assaut) : rapide, bons dégâts à toute distance
+- Trench Gun (fusil à pompe) : 7 plombs qui s'éparpillent, énormes dégâts de près, portée courte
+- Kar98k (sniper) : très gros dégâts à toute distance, tir lent

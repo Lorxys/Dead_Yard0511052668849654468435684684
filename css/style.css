@@ -49,11 +49,17 @@ body:not(.playing) #perks{visibility:hidden}
 body.playing #buy.show{display:flex}
 #buy.nope{animation:nope .3s steps(2)}
 @keyframes nope{25%{transform:translate(calc(-50% - 4px),-50%)}75%{transform:translate(calc(-50% + 4px),-50%)}}
+/* ce que fait la machine, au-dessus de son nom */
+#buyInfo{font-size:7px;color:#e8dcc0;white-space:nowrap;padding:3px 5px;background:rgba(10,4,4,.8);text-shadow:1px 1px 0 #000}
+#buyInfo:empty{display:none}
 #buyName{font-size:8px;font-weight:normal;white-space:nowrap;text-shadow:1px 1px 0 #000,0 0 6px #000}
 #buy button{pointer-events:auto;font-size:8px;padding:7px 9px;margin:0;letter-spacing:1px;display:flex;align-items:center;gap:6px}
 #buy button small{font-size:7px;padding:2px 3px;background:#120000;color:#c9b48a}
 @media (pointer:coarse){#buy button small{display:none}}
 #buyPrice{font-size:8px;color:#ffd84a;padding:3px 5px;background:rgba(10,4,4,.85);box-shadow:0 0 0 2px #000;white-space:nowrap}
+#buyPrice:empty{display:none}
+/* arme en main, à côté des grenades */
+#weapon{font-size:8px;color:#c9b48a;letter-spacing:1px}
 #buy.poor button{filter:grayscale(.8) brightness(.6)}
 #buy.poor #buyPrice{color:#c41a14}
 

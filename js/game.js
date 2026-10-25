@@ -16,14 +16,14 @@ const Game = {
   cam: { x: 0, y: 0 }, state: 'menu', players: [], zs: [], bullets: [], nades: [], fx: [], lights: [], events: [], shake: 0, acc: 0, localId: 1,
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
-    this.hud = { nades: document.getElementById('nades'), wave: document.getElementById('wave'), score: document.getElementById('score') };
+    this.hud = { nades: document.getElementById('nades'), weapon: document.getElementById('weapon'), wave: document.getElementById('wave'), score: document.getElementById('score') };
     // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
     bar.style.setProperty('--seg', CFG.ZOMBIE.dmg / CFG.PLAYER.hp * 100 + '%');
     this.gStick = document.getElementById('sG'); this.gCount = document.getElementById('nadeCount');
     // panneau d'achat devant une machine à atout + icônes des atouts possédés
-    this.buy = { box: document.getElementById('buy'), name: document.getElementById('buyName'), btn: document.getElementById('buyBtn'), price: document.getElementById('buyPrice') };
+    this.buy = { box: document.getElementById('buy'), name: document.getElementById('buyName'), btn: document.getElementById('buyBtn'), label: document.getElementById('buyLabel'), info: document.getElementById('buyInfo'), price: document.getElementById('buyPrice') };
     this.buy.btn.addEventListener('pointerdown', e => { e.preventDefault(); Input.buyQueue = true; });
     this.perkBox = document.getElementById('perks'); this.shownPerks = '';
     this.resize(); addEventListener('resize', () => this.resize());
@@ -72,6 +72,8 @@ const Game = {
     const s = GameMap.playerSpawn(0);
     this.players = [new Player(this.localId, s.x, s.y)];
     this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = []; this.events = [];
+    // boîte mystère : idle (fermée) -> rolling (les armes défilent) -> ready (l'arme attend son propriétaire) -> idle
+    this.box = { state: 'idle', t: 0, weapon: null, owner: null };
     this.wave = 0; this.score = 0; this.toSpawn = 0; this.spawnT = 0; this.shake = 0; this.acc = 0; this.ghostHp = CFG.PLAYER.hp;
     document.body.classList.add('playing');   // affiche le joystick grenade sur mobile
     document.getElementById('over').classList.remove('show'); this.nextWave();
@@ -113,9 +115,23 @@ const Game = {
   perkDef(k) { return k === 'upgrade' ? CFG.UPGRADE : CFG.PERKS[k]; },
   owns(p, k) { return k === 'upgrade' ? p.upgraded : !!p.perks[k]; },
   priceOf(p, k) { return k === 'upgrade' ? CFG.UPGRADE.price : p.perkPrice; },
+  // ce que propose une machine au joueur ({ name, info, color, label, price }), ou null : rien à acheter
+  // (atout déjà acquis, boîte en plein tirage ou arme sortie pour un autre joueur)
+  offer(p, m) {
+    if (m.perk === 'box') {
+      const B = this.box, C = CFG.BOX;
+      if (B.state === 'idle') return { name: C.name, info: C.info, color: C.color, label: 'Acheter', price: C.price };
+      if (B.state === 'ready' && B.owner === p.id) return { name: CFG.WEAPONS[B.weapon].name, info: '', color: C.color, label: 'Prendre', price: 0 };
+      return null;
+    }
+    if (this.owns(p, m.perk)) return null;
+    const def = this.perkDef(m.perk);
+    return { name: def.name, info: def.info, color: def.color, label: 'Acheter', price: this.priceOf(p, m.perk) };
+  },
   // achat à la machine devant laquelle se tient le joueur (les points servent de monnaie)
   buyPerk(p) {
     const m = GameMap.nearMachine(p); if (!m) return;
+    if (m.perk === 'box') return this.useBox(p);
     const def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
     if (this.owns(p, m.perk)) return;   // chaque atout et l'amélioration ne s'achètent qu'une fois
     if (p.score < price) { this.emit('buyfail', { id: p.id, perk: m.perk }); return; }
@@ -124,13 +140,43 @@ const Game = {
     if (def.maxHp) { p.hp += def.maxHp - p.maxHp; p.maxHp = def.maxHp; }
     this.emit('perk', { id: p.id, perk: m.perk, x: p.x, y: p.y });
   },
-  // inflige des dégâts à un zombie et donne les points au joueur responsable
+  // boîte mystère : payer lance le tirage ; une fois l'arme sortie, seul celui qui a payé peut la prendre
+  useBox(p) {
+    const B = this.box, C = CFG.BOX;
+    if (B.state === 'idle') {
+      if (p.score < C.price) { this.emit('buyfail', { id: p.id, perk: 'box' }); return; }
+      const pool = C.weapons.filter(w => w !== p.weapon);   // jamais l'arme qu'on a déjà en main
+      p.score -= C.price;
+      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: pool[Math.random() * pool.length | 0] });
+      this.emit('boxopen', { id: p.id });
+    } else if (B.state === 'ready' && B.owner === p.id) {
+      p.weapon = B.weapon; p.cd = 0; p.upgraded = false;   // l'amélioration reste sur l'ancienne arme : à racheter
+      Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null });
+      this.emit('pickup', { id: p.id, weapon: p.weapon, x: p.x, y: p.y });
+    }
+  },
+  updateBox(dt) {
+    const B = this.box, C = CFG.BOX;
+    if (B.state === 'idle') return;
+    B.t += dt;
+    if (B.state === 'rolling' && B.t >= C.roll) { B.state = 'ready'; B.t = 0; this.emit('boxready', { id: B.owner, weapon: B.weapon }); }
+    else if (B.state === 'ready' && B.t >= C.keep) { Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null }); this.emit('boxclose', {}); }
+  },
+  // dégâts d'une balle selon la distance parcourue (baisse progressive entre fall[0] et fall[1])
+  bulletDamage(b) {
+    if (!b.fall) return b.dmg;
+    const k = Math.min(1, Math.max(0, (b.d - b.fall[0]) / (b.fall[1] - b.fall[0])));
+    return b.dmg + (b.far - b.dmg) * k;
+  },
+  // inflige des dégâts à un zombie et donne les points au joueur responsable :
+  // chaque balle (ou plomb) qui touche rapporte les points de touche, la prime de mort n'est donnée qu'une fois
   damageZombie(z, dmg, ownerId) {
+    const killed = z.hp > 0 && z.hp - dmg <= 0;
     z.hp -= dmg; z.hit = 0.08;
-    const owner = this.players.find(p => p.id === ownerId), pts = CFG.SCORE.hit + (z.hp <= 0 ? CFG.SCORE.kill : 0);
+    const owner = this.players.find(p => p.id === ownerId), pts = CFG.SCORE.hit + (killed ? CFG.SCORE.kill : 0);
     this.score += pts;
-    if (owner) { owner.score += pts; if (z.hp <= 0) owner.kills++; }
-    if (z.hp <= 0) this.emit('kill', { id: z.id, x: z.x, y: z.y, v: z.v, by: ownerId });
+    if (owner) { owner.score += pts; if (killed) owner.kills++; }
+    if (killed) this.emit('kill', { id: z.id, x: z.x, y: z.y, v: z.v, by: ownerId });
   },
   explode(n) {
     const G = CFG.GRENADE;
@@ -156,6 +202,7 @@ const Game = {
     GameMap.computeFlow(alive);
     // apparition progressive des zombies
     if (this.toSpawn > 0 && (this.spawnT -= dt) <= 0) { this.spawn(alive); this.toSpawn--; this.spawnT = 0.7; }
+    this.updateBox(dt);
     this.zs.forEach(z => z.update(dt, this));
     // zombies qui se repoussent entre eux
     for (let i = 0; i < this.zs.length; i++) for (let j = i + 1; j < this.zs.length; j++) {
@@ -164,13 +211,13 @@ const Game = {
     }
     // balles
     this.bullets = this.bullets.filter(b => {
-      b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.d += Math.hypot(b.vx, b.vy) * dt;
       if (b.life <= 0) return false;
       if (GameMap.solidAt(b.x, b.y)) { this.emit('impact', { x: b.x, y: b.y }); return false; }
       for (const z of this.zs) if (Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
         moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
         this.emit('hit', { x: b.x, y: b.y, zx: z.x, zy: z.y });
-        this.damageZombie(z, b.dmg, b.owner);       // points : chaque balle qui touche + bonus au coup fatal
+        this.damageZombie(z, this.bulletDamage(b), b.owner);   // points : chaque balle qui touche + bonus au coup fatal
         return false;
       }
       return true;
@@ -271,6 +318,15 @@ const Game = {
         this.lights.push({ x: e.x, y: e.y, t: 0.4 });
         break;
       }
+      case 'boxopen': { const b = GameMap.box; this.lights.push({ x: (b.tx + 1) * CFG.TILE, y: b.ty * CFG.TILE, t: 0.4 }); break; }
+      case 'pickup': {   // nouvelle arme en main : bannière avec son nom
+        if (e.id === this.localId) {
+          const b = document.getElementById('banner'); b.textContent = CFG.WEAPONS[e.weapon].name.toUpperCase(); b.style.color = CFG.BOX.color; b.classList.add('show');
+          setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 1800);
+        }
+        this.blood(e.x, e.y - 6, 20, CFG.BOX.color, false);
+        break;
+      }
       case 'buyfail':
         if (e.id === this.localId) { this.buy.box.classList.remove('nope'); void this.buy.box.offsetWidth; this.buy.box.classList.add('nope'); }
         break;
@@ -306,19 +362,21 @@ const Game = {
     this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= p.regenDelay);
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
+    this.hud.weapon.textContent = p.gun.name;
     this.hpBar.style.setProperty('--seg', CFG.ZOMBIE.dmg / p.maxHp * 100 + '%');
-    // bouton « Acheter » posé sur la machine devant laquelle se tient le joueur, prix en dessous ;
-    // il n'apparaît pas pour un atout (ou une amélioration) déjà acheté
-    const m = p.alive && GameMap.nearMachine(p), B = this.buy, show = !!m && !this.owns(p, m.perk);
-    B.box.classList.toggle('show', show);
-    if (show) {
-      const r = this.cv.getBoundingClientRect(), k = r.width / this.W, def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
+    // bouton posé sur la machine devant laquelle se tient le joueur, prix en dessous
+    const m = p.alive && GameMap.nearMachine(p), B = this.buy, o = m && this.offer(p, m);
+    B.box.classList.toggle('show', !!o);
+    if (o) {
+      const r = this.cv.getBoundingClientRect(), k = r.width / this.W;
       B.box.style.left = r.left + ((m.tx + (m.w || 1) / 2) * CFG.TILE - this.cam.x) * k + 'px';
-      // machine du bas : bouton sur son socle pour laisser voir la chambre lumineuse
-      B.box.style.top = r.top + (m.ty * CFG.TILE + (m.perk === 'upgrade' ? 22 : 8) - this.cam.y) * k + 'px';
-      B.name.textContent = def.name; B.name.style.color = def.color;
-      B.price.textContent = price + ' pts';
-      B.box.classList.toggle('poor', p.score < price);
+      // machine du bas : bouton sur son socle pour laisser voir la chambre lumineuse ;
+      // boîte : au-dessus quand elle est fermée, sur sa face avant quand l'arme flotte au-dessus
+      const dy = m.perk === 'upgrade' ? 22 : m.perk === 'box' ? (this.box.state === 'idle' ? -8 : 12) : 8;
+      B.box.style.top = r.top + (m.ty * CFG.TILE + dy - this.cam.y) * k + 'px';
+      B.info.textContent = o.info; B.name.textContent = o.name; B.name.style.color = o.color; B.label.textContent = o.label;
+      B.price.textContent = o.price ? o.price + ' pts' : '';
+      B.box.classList.toggle('poor', !!o.price && p.score < o.price);
     }
     // icônes des atouts possédés (l'arme améliorée n'est pas un atout : pas d'icône), centrées en bas ; la rangée est refaite à chaque achat
     const owned = Object.keys(p.perks), key = owned.join();
@@ -331,6 +389,17 @@ const Game = {
         this.perkBox.appendChild(cv);
       });
     }
+  },
+  // état affiché de la boîte mystère : pendant le tirage, les armes défilent de plus en plus lentement
+  // puis s'arrêtent sur l'arme tirée ; elle clignote les 3 dernières secondes avant de redescendre dans la boîte
+  boxView() {
+    const B = this.box, C = CFG.BOX;
+    if (B.state === 'rolling') {
+      const phase = 14 * B.t - 1.5 * B.t * B.t, w = B.t > C.roll - 0.5 ? B.weapon : C.weapons[Math.floor(phase) % C.weapons.length];
+      return { open: true, weapon: w, rise: Math.min(1, B.t / 0.8) };
+    }
+    if (B.state === 'ready') return { open: true, weapon: B.weapon, rise: 1, hide: B.t > C.keep - 3 && Math.floor(B.t * 8) % 2 === 1 };
+    return { open: false };
   },
   // icône d'atout (9x9 pixels : fond sombre bordé de la couleur, symbole au centre), agrandie en CSS
   drawPerkIcon(cv, perk) {
@@ -347,6 +416,7 @@ const Game = {
     const T = CFG.TILE;
     GameMap.machines.forEach(m => Sprites.perkMachine(c, m.tx * T - cam.x, m.ty * T - cam.y, m.perk));
     const fg = GameMap.forge; Sprites.forge(c, fg.tx * T - cam.x, fg.ty * T - cam.y);
+    const mb = GameMap.box, bv = this.boxView(); Sprites.mysteryBox(c, mb.tx * T - cam.x, mb.ty * T - cam.y, bv.open);
     [...this.zs, ...this.players].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
     this.nades.forEach(n => Sprites.grenade(c, n.x - cam.x, n.y - cam.y, n.z));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
@@ -369,13 +439,15 @@ const Game = {
     });
     const fx0 = fg.tx * T - cam.x, fy0 = fg.ty * T - cam.y;
     halo(Sprites.forgeLit(c, fx0, fy0, t / 1000), fx0 + 16, fy0 + 2, 44 + Math.sin(t / 300) * 4);
+    const bx0 = mb.tx * T - cam.x, by0 = mb.ty * T - cam.y;
+    halo(Sprites.mysteryBoxLit(c, bx0, by0, t / 1000, bv), bx0 + 16, by0 + (bv.open ? -8 : 4), (bv.open ? 52 : 30) + Math.sin(t / 350) * 3);
     // yeux des zombies et balles traçantes visibles dans le noir
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));
     this.bullets.forEach(b => {
       const bx = Math.round(b.x - cam.x), by = Math.round(b.y - cam.y), n = Math.hypot(b.vx, b.vy);
-      const up = b.dmg > 1;   // balles de l'arme améliorée : traçantes violettes
+      const up = b.up;   // balles de l'arme améliorée : traçantes violettes ; traînée plus longue pour les balles rapides (sniper)
       c.fillStyle = up ? '#b060ff' : '#ff8a2a';
-      for (let i = 1; i <= 4; i++) c.fillRect(Math.round(bx - b.vx / n * i), Math.round(by - b.vy / n * i), 1, 1);
+      for (let i = 1; i <= (n > 300 ? 9 : 4); i++) c.fillRect(Math.round(bx - b.vx / n * i), Math.round(by - b.vy / n * i), 1, 1);
       c.fillStyle = up ? '#f0d8ff' : '#fff3b0'; c.fillRect(bx, by, 1, 1);
     });
     this.nades.forEach(n => Sprites.grenadeFuse(c, n.x - cam.x, n.y - cam.y, n.z, n.t / CFG.GRENADE.fuse));

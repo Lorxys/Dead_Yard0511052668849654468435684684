@@ -8,6 +8,8 @@ const GameMap = {
   machines: [{ perk: 'health', tx: 5, ty: 1 }, { perk: 'regen', tx: 9, ty: 1 }, { perk: 'speed', tx: 14, ty: 1 }, { perk: 'fire', tx: 18, ty: 1 }],
   // machine d'amélioration d'arme contre le mur du bas (2 cases de large), on l'utilise par le haut
   forge: { perk: 'upgrade', tx: 11, ty: 22, w: 2 },
+  // boîte mystère sur le côté gauche, en plein terrain (on peut s'en servir de tous les côtés)
+  box: { perk: 'box', tx: 2, ty: 11, w: 2 },
   init() {
     const { MW, MH } = CFG;
     this.grid = [];
@@ -18,13 +20,14 @@ const GameMap = {
     const layout = { 2: [[6,6],[7,6],[16,16],[17,16]], 4: [[16,6],[16,7],[6,16],[6,17]], 3: [[9,9],[14,9],[9,14],[14,14]] };
     for (const t in layout) layout[t].forEach(([x, y]) => this.grid[y][x] = +t);
     this.machines.forEach(m => this.grid[m.ty][m.tx] = 5);
-    for (let i = 0; i < this.forge.w; i++) this.grid[this.forge.ty][this.forge.tx + i] = 5;
+    for (const m of [this.forge, this.box]) for (let i = 0; i < m.w; i++) this.grid[m.ty][m.tx + i] = 5;
     this.render();
   },
   // machine devant laquelle se tient le joueur (null s'il n'est près d'aucune)
   nearMachine(p) {
-    const T = CFG.TILE, f = this.forge;
+    const T = CFG.TILE, f = this.forge, b = this.box;
     if (Math.hypot(p.x - (f.tx + f.w / 2) * T, p.y - f.ty * T) < 24) return f;
+    if (Math.hypot(p.x - (b.tx + b.w / 2) * T, (p.y - (b.ty + 0.5) * T) * 1.3) < 28) return b;
     return this.machines.find(m => Math.hypot(p.x - (m.tx + 0.5) * T, p.y - (m.ty + 1) * T) < 20) || null;
   },
   // redessine le sol (efface aussi le sang et les cadavres de la partie précédente)
