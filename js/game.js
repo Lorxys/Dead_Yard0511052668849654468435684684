@@ -16,7 +16,11 @@ const Game = {
   cam: { x: 0, y: 0 }, state: 'menu', players: [], zs: [], bullets: [], nades: [], fx: [], lights: [], events: [], shake: 0, acc: 0, localId: 1,
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
-    this.hud = { hp: document.getElementById('hp'), nades: document.getElementById('nades'), wave: document.getElementById('wave'), score: document.getElementById('score') };
+    this.hud = { nades: document.getElementById('nades'), wave: document.getElementById('wave'), score: document.getElementById('score') };
+    // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
+    const bar = this.hpBar = document.getElementById('hpbar');
+    this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
+    bar.style.setProperty('--seg', CFG.ZOMBIE.dmg / CFG.PLAYER.hp * 100 + '%');
     this.gStick = document.getElementById('sG'); this.gCount = document.getElementById('nadeCount');
     this.resize(); addEventListener('resize', () => this.resize());
     GameMap.init(); Input.init(document.getElementById('touch'));
@@ -48,7 +52,7 @@ const Game = {
     const s = GameMap.playerSpawn(0);
     this.players = [new Player(this.localId, s.x, s.y)];
     this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = []; this.events = [];
-    this.wave = 0; this.score = 0; this.toSpawn = 0; this.spawnT = 0; this.shake = 0; this.acc = 0;
+    this.wave = 0; this.score = 0; this.toSpawn = 0; this.spawnT = 0; this.shake = 0; this.acc = 0; this.ghostHp = CFG.PLAYER.hp;
     document.body.classList.add('playing');   // affiche le joystick grenade sur mobile
     document.getElementById('over').classList.remove('show'); this.nextWave();
   },
@@ -245,7 +249,13 @@ const Game = {
     const mw = CFG.MW * CFG.TILE, mh = CFG.MH * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
     this.cam.x = Math.round((mw <= this.W ? (mw - this.W) / 2 : Math.max(0, Math.min(mw - this.W, p.x - this.W / 2))) + (Math.random() - 0.5) * sk);
     this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(0, Math.min(mh - this.H, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
-    this.hud.hp.textContent = '♥'.repeat(Math.max(0, p.hp));
+    // barre de vie : le fantôme rattrape la vie réelle en douceur pour montrer les dégâts encaissés
+    const hp = Math.max(0, p.hp);
+    this.ghostHp = hp > this.ghostHp ? hp : Math.max(hp, this.ghostHp - 90 * dt);
+    this.hpFill.style.width = hp / p.maxHp * 100 + '%'; this.hpGhost.style.width = this.ghostHp / p.maxHp * 100 + '%';
+    this.hpText.textContent = Math.ceil(hp);
+    this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= CFG.PLAYER.regenDelay);
+    this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = this.score;
   },
   draw(t) {
@@ -257,7 +267,7 @@ const Game = {
     this.nades.forEach(n => Sprites.grenade(c, n.x - cam.x, n.y - cam.y, n.z));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
     // nuit : seule une zone autour du soldat est éclairée (plus large au moment du tir)
-    const px = p.x - cam.x, py = p.y - cam.y - 4, low = p.hp <= 2;
+    const px = p.x - cam.x, py = p.y - cam.y - 4, low = p.hp <= p.maxHp * 0.4;
     const gr = c.createRadialGradient(px, py, 12, px, py, this.W * (p.flash > 0 ? 0.48 : 0.375));
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(6,2,3,.35)');
     gr.addColorStop(1, low ? `rgba(45,0,0,${0.85 + Math.sin(t / 150) * 0.08})` : 'rgba(6,2,3,.86)');

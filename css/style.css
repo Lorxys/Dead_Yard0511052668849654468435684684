@@ -20,7 +20,18 @@ html,body{height:100%;background:#050203;overflow:hidden;overscroll-behavior:non
 #hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:12px;text-shadow:2px 2px 0 #000;pointer-events:none}
 #hud .left{display:flex;align-items:center;gap:16px}
 #nades{color:#c9b48a;padding-left:20px;line-height:18px;background:var(--nade) left center/14px 16px no-repeat;image-rendering:pixelated}
-#hp{color:#d01818;font-size:16px;letter-spacing:2px;text-shadow:2px 2px 0 #000,0 0 8px rgba(200,0,0,.6)}
+/* barre de vie pixel : cadre sombre, remplissage rouge sang à paliers, fantôme clair des PV perdus, crans de dégâts */
+#hpbar{position:relative;display:block;width:clamp(110px,22vw,170px);height:14px;background:#1a0505;box-shadow:0 0 0 2px #000,0 0 0 4px #4a0a0a,4px 4px 0 2px rgba(0,0,0,.6)}
+body:not(.playing) #hpbar{visibility:hidden}
+#hpbar b{position:absolute;left:0;top:0;bottom:0;width:100%}
+#hpbar .ghost{background:#e8c890}
+#hpbar .fill{background:linear-gradient(#ff5a3a 0 25%,#c41a14 25% 70%,#7a0808 70%)}
+#hpbar i{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(var(--seg,20%) - 2px),rgba(0,0,0,.75) calc(var(--seg,20%) - 2px) var(--seg,20%))}
+#hptext{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8px;line-height:1;color:#fff;text-shadow:1px 1px 0 #000}
+#hpbar.regen .fill{animation:regen .5s steps(2) infinite}
+@keyframes regen{50%{filter:brightness(1.4)}}
+#hpbar.low{animation:lowhp .5s steps(2) infinite}
+@keyframes lowhp{50%{box-shadow:0 0 0 2px #000,0 0 0 4px #c41a14,0 0 12px 4px rgba(200,0,0,.6)}}
 #wave{color:#c9b48a}
 #score{color:#e9d9c4}
 #banner{position:fixed;top:28%;left:0;right:0;text-align:center;font-size:clamp(16px,4vw,28px);letter-spacing:4px;color:#c41a14;text-shadow:3px 3px 0 #000,0 0 16px rgba(200,0,0,.6);opacity:0;transition:opacity .4s;pointer-events:none}

@@ -11,7 +11,7 @@ class Player {
   constructor(id, x, y) {
     this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
     this.grenades = CFG.GRENADE.start; this.gcd = 0;
-    this.hp = CFG.PLAYER.hp; this.a = Math.PI / 2; this.cd = 0; this.inv = 0; this.flash = 0; this.walk = 0;
+    this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.inv = 0; this.flash = 0; this.walk = 0;
   }
   // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur) }
   // vient du clavier/tactile en local, du réseau plus tard
@@ -21,6 +21,9 @@ class Player {
     if (m > 1) { mv = { x: mv.x / m, y: mv.y / m }; m = 1; }
     moveEntity(this, mv.x * CFG.PLAYER.speed * dt, mv.y * CFG.PLAYER.speed * dt);
     this.walk += m * dt * 8; this.cd -= dt; this.inv -= dt; this.flash -= dt;
+    // régénération : la vie remonte petit à petit si le joueur n'a pas été touché depuis un moment
+    this.sinceHit += dt;
+    if (this.sinceHit >= CFG.PLAYER.regenDelay) this.hp = Math.min(this.maxHp, this.hp + CFG.PLAYER.regenRate * dt);
     const aim = intent.aim;
     if (aim && Math.hypot(aim.x, aim.y) > 0.1) this.a = Math.atan2(aim.y, aim.x);
     else if (m > 0.2) this.a = Math.atan2(mv.y, mv.x);
@@ -37,9 +40,9 @@ class Player {
     }
   }
   // renvoie true si le coup a porté (pas pendant l'invincibilité)
-  hurt() {
+  hurt(dmg) {
     if (this.inv > 0 || !this.alive) return false;
-    this.hp--; this.inv = 1;
+    this.hp -= dmg; this.inv = 1; this.sinceHit = 0;
     if (this.hp <= 0) this.alive = false;
     return true;
   }
@@ -77,7 +80,7 @@ class Zombie {
     if (this.stuck > 0.4 && pd > 14) { this.detour = 1.5; this.stuck = 0; }
     this.t += dt; this.hit -= dt; this.cd -= dt;
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) {
-      if (p.hurt()) world.emit('hurt', { id: p.id, x: p.x, y: p.y });
+      if (p.hurt(CFG.ZOMBIE.dmg)) world.emit('hurt', { id: p.id, x: p.x, y: p.y });
       this.cd = CFG.ZOMBIE.dmgCd;
     }
   }
