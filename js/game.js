@@ -21,8 +21,7 @@ const Game = {
     el.requestFullscreen().then(() => screen.orientation.lock('landscape')).catch(() => {});
   },
   resize() {
-    const k = this.state === 'menu' ? 2 : 1;   // le décor du menu est plus détaillé
-    this.W = CFG.VIEW_W * k; this.H = Math.round(this.W * innerHeight / innerWidth);
+    this.W = this.state === 'menu' ? CFG.MENU_W : CFG.VIEW_W; this.H = Math.round(this.W * innerHeight / innerWidth);
     this.cv.width = this.W; this.cv.height = this.H; this.c.imageSmoothingEnabled = false;
     if (this.state === 'menu') MenuScene.build(this.W, this.H);
   },
@@ -116,7 +115,7 @@ const Game = {
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
     // nuit : seule une zone autour du soldat est éclairée (plus large au moment du tir)
     const p = this.p, px = p.x - cam.x, py = p.y - cam.y - 4, low = p.hp <= 2;
-    const gr = c.createRadialGradient(px, py, 12, px, py, p.flash > 0 ? 115 : 90);
+    const gr = c.createRadialGradient(px, py, 12, px, py, this.W * (p.flash > 0 ? 0.48 : 0.375));
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(6,2,3,.35)');
     gr.addColorStop(1, low ? `rgba(45,0,0,${0.85 + Math.sin(t / 150) * 0.08})` : 'rgba(6,2,3,.86)');
     c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
