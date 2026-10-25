@@ -287,7 +287,7 @@ const Game = {
         if (e.id === this.localId) this.shake = 0.3;
         this.blood(e.x, e.y - 5, 16); GameMap.splat(e.x, e.y + 3, 4);
         break;
-      case 'wave': {   // nouvelle manche : cadavres, sang et douilles disparaissent
+      case 'wave': {   // nouvelle manche : cadavres, sang et douilles s'estompent petit à petit
         GameMap.clearMess();
         const b = document.getElementById('banner'); b.textContent = 'VAGUE ' + e.n; b.classList.add('show');
         setTimeout(() => b.classList.remove('show'), 1800);
@@ -345,7 +345,7 @@ const Game = {
       if (f.stain) GameMap.stain(f.x, f.y, f.col, f.s);
       return false;
     });
-    this.shake -= dt;
+    this.shake -= dt; GameMap.updateFade(dt);
     this.lights = this.lights.filter(l => (l.t -= dt) > 0);
     const p = this.me; if (!p) return;
     this.hud.nades.textContent = '×' + p.grenades;

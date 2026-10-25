@@ -35,9 +35,8 @@ const GameMap = {
     const T = CFG.TILE, c = document.createElement('canvas');
     c.width = CFG.MW * T; c.height = CFG.MH * T;
     const g = c.getContext('2d'); this.canvas = c; this.ctx = g;
-    // calque séparé pour les cadavres, le sang et les douilles de la partie : effacé à chaque nouvelle manche
-    this.mess = document.createElement('canvas'); this.mess.width = c.width; this.mess.height = c.height;
-    this.messCtx = this.mess.getContext('2d');
+    // calque séparé pour les cadavres, le sang et les douilles de la partie : il s'efface à chaque nouvelle manche
+    this.newMess(); this.fading = null; this.fadeT = 0;
     let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
     const P = (col, x, y, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
     // boue et terre retournée
@@ -162,6 +161,19 @@ const GameMap = {
   solid(tx, ty) { return tx < 0 || ty < 0 || tx >= CFG.MW || ty >= CFG.MH || this.grid[ty][tx] > 0; },
   solidAt(x, y) { return this.solid(Math.floor(x / CFG.TILE), Math.floor(y / CFG.TILE)); },
   blocked(x, y, r) { return this.solidAt(x - r, y - r) || this.solidAt(x + r, y - r) || this.solidAt(x - r, y + r) || this.solidAt(x + r, y + r); },
-  clearMess() { this.messCtx.clearRect(0, 0, this.mess.width, this.mess.height); },
-  draw(c, cam) { c.drawImage(this.canvas, -cam.x, -cam.y); c.drawImage(this.mess, -cam.x, -cam.y); }
+  newMess() {
+    this.mess = document.createElement('canvas'); this.mess.width = this.canvas.width; this.mess.height = this.canvas.height;
+    this.messCtx = this.mess.getContext('2d');
+  },
+  // nouvelle manche : l'ancien calque s'estompe petit à petit (fadeTime s) pendant que le nouveau, vierge, reçoit le sang frais
+  clearMess() { this.fading = this.mess; this.fadeT = 1; this.newMess(); },
+  updateFade(dt) { if (this.fadeT > 0 && (this.fadeT -= dt / this.fadeTime) <= 0) { this.fadeT = 0; this.fading = null; } },
+  fadeTime: 3,
+  draw(c, cam) {
+    c.drawImage(this.canvas, -cam.x, -cam.y);
+    if (this.fading) {   // opacité par paliers, pour rester dans l'esprit pixel art
+      c.globalAlpha = Math.ceil(this.fadeT * 8) / 8; c.drawImage(this.fading, -cam.x, -cam.y); c.globalAlpha = 1;
+    }
+    c.drawImage(this.mess, -cam.x, -cam.y);
+  }
 };
