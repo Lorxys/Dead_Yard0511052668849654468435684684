@@ -26,6 +26,11 @@ Le jeu est solo, mais le code est organisé pour accueillir un mode multijoueur 
 - **Pas de temps fixe** (60 pas/seconde) et **identifiants uniques** pour les zombies et les balles, pour les
   synchroniser entre les machines.
 
+## Version
+Format `1.00.<nombre de push>`, affichée en bas à gauche du menu. À chaque push, on l'augmente dans `index.html`
+(dans tous les `?v=` et dans le menu) : les téléphones téléchargent alors les nouveaux fichiers au lieu de garder
+l'ancienne version en cache.
+
 ## Publier sur GitHub Pages
 1. Crée un dépôt GitHub et envoie tous ces fichiers à la racine.
 2. Settings > Pages > Source : "Deploy from a branch", branche main, dossier /(root).

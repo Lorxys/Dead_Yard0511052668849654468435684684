@@ -50,6 +50,7 @@ button:active{transform:translateY(3px)}
 #menu::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
   background:repeating-linear-gradient(rgba(0,0,0,.18) 0 2px,transparent 2px 4px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
 #menu .sub{color:#a08a6a;font-size:clamp(8px,2.2vw,12px);letter-spacing:4px;text-transform:uppercase;text-shadow:2px 2px 0 #000}
+#menu .version{position:absolute;left:calc(env(safe-area-inset-left,0px) + 12px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);color:#5e4e40;font-size:8px;text-shadow:1px 1px 0 #000}
 #menu .tag{color:#7e6a58;font-size:clamp(7px,1.8vw,10px);line-height:2;text-shadow:2px 2px 0 #000}
 /* titre rouge sang en dégradé à paliers, qui grésille et dégouline */
 #menu h1,#over h1{position:relative;text-transform:uppercase;line-height:1.15;color:transparent;
