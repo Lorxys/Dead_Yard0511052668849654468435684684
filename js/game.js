@@ -320,8 +320,8 @@ const Game = {
       B.price.textContent = price + ' pts';
       B.box.classList.toggle('poor', p.score < price);
     }
-    // icônes des atouts possédés (et de l'arme améliorée), centrées en bas ; la rangée est refaite à chaque achat
-    const owned = Object.keys(p.perks).concat(p.upgraded ? ['upgrade'] : []), key = owned.join();
+    // icônes des atouts possédés (l'arme améliorée n'est pas un atout : pas d'icône), centrées en bas ; la rangée est refaite à chaque achat
+    const owned = Object.keys(p.perks), key = owned.join();
     if (key !== this.shownPerks) {
       const before = this.shownPerks.split(',');
       this.shownPerks = key; this.perkBox.textContent = '';
