@@ -320,11 +320,16 @@ const Game = {
       B.price.textContent = price + ' pts';
       B.box.classList.toggle('poor', p.score < price);
     }
-    // icônes des atouts possédés (et de l'arme améliorée), sous la barre de vie
+    // icônes des atouts possédés (et de l'arme améliorée), centrées en bas ; la rangée est refaite à chaque achat
     const owned = Object.keys(p.perks).concat(p.upgraded ? ['upgrade'] : []), key = owned.join();
     if (key !== this.shownPerks) {
+      const before = this.shownPerks.split(',');
       this.shownPerks = key; this.perkBox.textContent = '';
-      owned.forEach(k => { const cv = document.createElement('canvas'); this.drawPerkIcon(cv, k); this.perkBox.appendChild(cv); });
+      owned.forEach(k => {
+        const cv = document.createElement('canvas'); this.drawPerkIcon(cv, k);
+        cv.classList.toggle('new', !before.includes(k));   // le nouvel atout apparaît avec un flash
+        this.perkBox.appendChild(cv);
+      });
     }
   },
   // icône d'atout (9x9 pixels : fond sombre bordé de la couleur, symbole au centre), agrandie en CSS

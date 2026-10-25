@@ -38,8 +38,12 @@ body:not(.playing) #hpbar{visibility:hidden}
 #banner.show{opacity:1}
 
 /* ---- Atouts : icônes possédées dans le HUD + panneau d'achat devant une machine ---- */
-#perks{display:flex;gap:6px}
-#perks canvas{width:20px;height:20px;image-rendering:pixelated;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+/* atouts possédés : rangée centrée en bas de l'écran, recentrée à chaque achat */
+#perks{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:translateX(-50%);display:flex;justify-content:center;gap:8px;pointer-events:none}
+body:not(.playing) #perks{visibility:hidden}
+#perks canvas{width:22px;height:22px;image-rendering:pixelated;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+#perks canvas.new{animation:perkIn .5s steps(5)}
+@keyframes perkIn{0%{transform:scale(2.2);filter:brightness(2.5)}60%{transform:scale(.85)}100%{transform:scale(1);filter:none}}
 /* bouton d'achat posé sur la machine (positionné en JS), nom de l'atout au-dessus, prix en dessous */
 #buy{position:fixed;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:4px;text-align:center;pointer-events:none}
 body.playing #buy.show{display:flex}
