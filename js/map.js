@@ -1,11 +1,13 @@
 // Map fermée : no man's land de nuit.
 // 0 = boue, 1 = sacs de sable (bordure), 2 = caisse de munitions, 3 = hérisson tchèque, 4 = sacs de sable,
-// 5 = machine à atout (dessinée à part, animée)
+// 5 = machine à atout ou d'amélioration (dessinée à part, animée)
 const BLOOD = ['#4a0505', '#6a0808', '#850c0c'];
 const GameMap = {
   grid: [], canvas: null, ctx: null,
   // machines à atout contre le mur du haut
   machines: [{ perk: 'health', tx: 5, ty: 1 }, { perk: 'regen', tx: 9, ty: 1 }, { perk: 'speed', tx: 14, ty: 1 }, { perk: 'fire', tx: 18, ty: 1 }],
+  // machine d'amélioration d'arme contre le mur du bas (2 cases de large), on l'utilise par le haut
+  forge: { perk: 'upgrade', tx: 11, ty: 22, w: 2 },
   init() {
     const { MW, MH } = CFG;
     this.grid = [];
@@ -16,11 +18,13 @@ const GameMap = {
     const layout = { 2: [[6,6],[7,6],[16,16],[17,16]], 4: [[16,6],[16,7],[6,16],[6,17]], 3: [[9,9],[14,9],[9,14],[14,14]] };
     for (const t in layout) layout[t].forEach(([x, y]) => this.grid[y][x] = +t);
     this.machines.forEach(m => this.grid[m.ty][m.tx] = 5);
+    for (let i = 0; i < this.forge.w; i++) this.grid[this.forge.ty][this.forge.tx + i] = 5;
     this.render();
   },
   // machine devant laquelle se tient le joueur (null s'il n'est près d'aucune)
   nearMachine(p) {
-    const T = CFG.TILE;
+    const T = CFG.TILE, f = this.forge;
+    if (Math.hypot(p.x - (f.tx + f.w / 2) * T, p.y - f.ty * T) < 24) return f;
     return this.machines.find(m => Math.hypot(p.x - (m.tx + 0.5) * T, p.y - (m.ty + 1) * T) < 20) || null;
   },
   // redessine le sol (efface aussi le sang et les cadavres de la partie précédente)

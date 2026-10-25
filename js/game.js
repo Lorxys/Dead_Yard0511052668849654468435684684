@@ -109,13 +109,18 @@ const Game = {
     this.nades.push({ id: nextId++, owner: p.id, sx: p.x, sy: p.y, tx: tg.x, ty: tg.y, x: p.x, y: p.y, z: 0, t: 0 });
     this.emit('throw', { id: p.id, x: p.x, y: p.y });
   },
-  // achat de l'atout de la machine devant laquelle se tient le joueur (les points servent de monnaie)
+  // définition (nom, couleur, description) d'un atout ou de l'amélioration d'arme
+  perkDef(k) { return k === 'upgrade' ? CFG.UPGRADE : CFG.PERKS[k]; },
+  owns(p, k) { return k === 'upgrade' ? p.upgraded : !!p.perks[k]; },
+  priceOf(p, k) { return k === 'upgrade' ? CFG.UPGRADE.price : p.perkPrice; },
+  // achat à la machine devant laquelle se tient le joueur (les points servent de monnaie)
   buyPerk(p) {
     const m = GameMap.nearMachine(p); if (!m) return;
-    const def = CFG.PERKS[m.perk], price = p.perkPrice;
-    if (p.perks[m.perk]) return;   // un atout ne s'achète qu'une fois
+    const def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
+    if (this.owns(p, m.perk)) return;   // chaque atout et l'amélioration ne s'achètent qu'une fois
     if (p.score < price) { this.emit('buyfail', { id: p.id, perk: m.perk }); return; }
-    p.score -= price; p.perks[m.perk] = true;
+    p.score -= price;
+    if (m.perk === 'upgrade') p.upgraded = true; else p.perks[m.perk] = true;
     if (def.maxHp) { p.hp += def.maxHp - p.maxHp; p.maxHp = def.maxHp; }
     this.emit('perk', { id: p.id, perk: m.perk, x: p.x, y: p.y });
   },
@@ -165,7 +170,7 @@ const Game = {
       for (const z of this.zs) if (Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
         moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
         this.emit('hit', { x: b.x, y: b.y, zx: z.x, zy: z.y });
-        this.damageZombie(z, 1, b.owner);           // points : chaque balle qui touche + bonus au coup fatal
+        this.damageZombie(z, b.dmg, b.owner);       // points : chaque balle qui touche + bonus au coup fatal
         return false;
       }
       return true;
@@ -257,7 +262,7 @@ const Game = {
         break;
       }
       case 'perk': {   // atout acheté : bannière à la couleur de la machine + gerbe d'étincelles
-        const def = CFG.PERKS[e.perk], b = document.getElementById('banner');
+        const def = this.perkDef(e.perk), b = document.getElementById('banner');
         if (e.id === this.localId) {
           b.textContent = def.name.toUpperCase(); b.style.color = def.color; b.classList.add('show');
           setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 1800);
@@ -291,8 +296,8 @@ const Game = {
     // caméra sur le joueur local (centrée si la map est plus petite que l'écran) + secousse
     const mw = CFG.MW * CFG.TILE, mh = CFG.MH * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
     this.cam.x = Math.round((mw <= this.W ? (mw - this.W) / 2 : Math.max(0, Math.min(mw - this.W, p.x - this.W / 2))) + (Math.random() - 0.5) * sk);
-    // en haut de la map, on garde une marge de 22 px sous le HUD pour bien voir les machines à atout
-    this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(-22, Math.min(mh - this.H, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
+    // marge de 22 px en haut (sous le HUD) et en bas pour bien voir les machines et leur bouton d'achat
+    this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(-22, Math.min(mh - this.H + 22, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
     // barre de vie : le fantôme rattrape la vie réelle en douceur pour montrer les dégâts encaissés
     const hp = Math.max(0, p.hp);
     this.ghostHp = hp > this.ghostHp ? hp : Math.max(hp, this.ghostHp - 90 * dt);
@@ -303,22 +308,23 @@ const Game = {
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
     this.hpBar.style.setProperty('--seg', CFG.ZOMBIE.dmg / p.maxHp * 100 + '%');
     // bouton « Acheter » posé sur la machine devant laquelle se tient le joueur, prix en dessous ;
-    // il n'apparaît pas pour un atout déjà acheté
-    const m = p.alive && GameMap.nearMachine(p), B = this.buy, show = !!m && !p.perks[m.perk];
+    // il n'apparaît pas pour un atout (ou une amélioration) déjà acheté
+    const m = p.alive && GameMap.nearMachine(p), B = this.buy, show = !!m && !this.owns(p, m.perk);
     B.box.classList.toggle('show', show);
     if (show) {
-      const r = this.cv.getBoundingClientRect(), k = r.width / this.W, def = CFG.PERKS[m.perk], price = p.perkPrice;
-      B.box.style.left = r.left + ((m.tx + 0.5) * CFG.TILE - this.cam.x) * k + 'px';
-      B.box.style.top = r.top + (m.ty * CFG.TILE + 8 - this.cam.y) * k + 'px';
+      const r = this.cv.getBoundingClientRect(), k = r.width / this.W, def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
+      B.box.style.left = r.left + ((m.tx + (m.w || 1) / 2) * CFG.TILE - this.cam.x) * k + 'px';
+      // machine du bas : bouton sur son socle pour laisser voir la chambre lumineuse
+      B.box.style.top = r.top + (m.ty * CFG.TILE + (m.perk === 'upgrade' ? 22 : 8) - this.cam.y) * k + 'px';
       B.name.textContent = def.name; B.name.style.color = def.color;
       B.price.textContent = price + ' pts';
       B.box.classList.toggle('poor', p.score < price);
     }
-    // icônes des atouts possédés, sous la barre de vie
-    const key = Object.keys(p.perks).join();
+    // icônes des atouts possédés (et de l'arme améliorée), sous la barre de vie
+    const owned = Object.keys(p.perks).concat(p.upgraded ? ['upgrade'] : []), key = owned.join();
     if (key !== this.shownPerks) {
       this.shownPerks = key; this.perkBox.textContent = '';
-      Object.keys(p.perks).forEach(k => { const cv = document.createElement('canvas'); this.drawPerkIcon(cv, k); this.perkBox.appendChild(cv); });
+      owned.forEach(k => { const cv = document.createElement('canvas'); this.drawPerkIcon(cv, k); this.perkBox.appendChild(cv); });
     }
   },
   // icône d'atout (9x9 pixels : fond sombre bordé de la couleur, symbole au centre), agrandie en CSS
@@ -335,6 +341,7 @@ const Game = {
     GameMap.draw(c, cam);
     const T = CFG.TILE;
     GameMap.machines.forEach(m => Sprites.perkMachine(c, m.tx * T - cam.x, m.ty * T - cam.y, m.perk));
+    const fg = GameMap.forge; Sprites.forge(c, fg.tx * T - cam.x, fg.ty * T - cam.y);
     [...this.zs, ...this.players].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
     this.nades.forEach(n => Sprites.grenade(c, n.x - cam.x, n.y - cam.y, n.z));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
@@ -344,21 +351,27 @@ const Game = {
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(6,2,3,.35)');
     gr.addColorStop(1, low ? `rgba(45,0,0,${0.85 + Math.sin(t / 150) * 0.08})` : 'rgba(6,2,3,.86)');
     c.fillStyle = gr; c.fillRect(0, 0, this.W, this.H);
-    // machines à atout : enseignes allumées et halo coloré qui percent la nuit
-    GameMap.machines.forEach(m => {
-      const x = m.tx * T - cam.x, y = m.ty * T - cam.y, glow = Sprites.perkMachineLit(c, x, y, m.perk, t / 1000);
+    // machines à atout et d'amélioration : enseignes allumées et halo coloré qui percent la nuit
+    const halo = (glow, cx, cy, r) => {
       if (!glow) return;
-      const cx = x + 8, cy = y - 4, r = 34 + Math.sin(t / 400 + m.tx) * 3, g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+      const g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
       g.addColorStop(0, `rgba(${glow},.32)`); g.addColorStop(1, `rgba(${glow},0)`);
       c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(cx - r, cy - r, r * 2, r * 2); c.globalCompositeOperation = 'source-over';
+    };
+    GameMap.machines.forEach(m => {
+      const x = m.tx * T - cam.x, y = m.ty * T - cam.y;
+      halo(Sprites.perkMachineLit(c, x, y, m.perk, t / 1000), x + 8, y - 4, 34 + Math.sin(t / 400 + m.tx) * 3);
     });
+    const fx0 = fg.tx * T - cam.x, fy0 = fg.ty * T - cam.y;
+    halo(Sprites.forgeLit(c, fx0, fy0, t / 1000), fx0 + 16, fy0 + 2, 44 + Math.sin(t / 300) * 4);
     // yeux des zombies et balles traçantes visibles dans le noir
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));
     this.bullets.forEach(b => {
       const bx = Math.round(b.x - cam.x), by = Math.round(b.y - cam.y), n = Math.hypot(b.vx, b.vy);
-      c.fillStyle = '#ff8a2a';
+      const up = b.dmg > 1;   // balles de l'arme améliorée : traçantes violettes
+      c.fillStyle = up ? '#b060ff' : '#ff8a2a';
       for (let i = 1; i <= 4; i++) c.fillRect(Math.round(bx - b.vx / n * i), Math.round(by - b.vy / n * i), 1, 1);
-      c.fillStyle = '#fff3b0'; c.fillRect(bx, by, 1, 1);
+      c.fillStyle = up ? '#f0d8ff' : '#fff3b0'; c.fillRect(bx, by, 1, 1);
     });
     this.nades.forEach(n => Sprites.grenadeFuse(c, n.x - cam.x, n.y - cam.y, n.z, n.t / CFG.GRENADE.fuse));
     // lueur des explosions qui perce la nuit

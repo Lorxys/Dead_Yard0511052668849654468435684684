@@ -114,14 +114,16 @@ const Sprites = {
     health: ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
     regen:  ['..XXX..', '..XXX..', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '..XXX..', '..XXX..'],
     speed:  ['X..X...', '.X..X..', '..X..X.', '...X..X', '..X..X.', '.X..X..', 'X..X...'],
-    fire:   ['.X...X.', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX']
+    fire:   ['.X...X.', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX'],
+    upgrade: ['.XXXXX.', 'XXXXXXX', 'X..X..X', 'XXXXXXX', '.XX.XX.', '.XXXXX.', '.X.X.X.']   // crâne : arme améliorée
   },
   // teintes des machines : corps, ombre, reflet, lueur (r,g,b)
   PERK_PAL: {
     health: ['#8e1a16', '#5a0e0c', '#c43a2a', '255,60,40'],
     regen:  ['#1e4a9a', '#10285a', '#3a78d8', '60,130,255'],
     speed:  ['#b85a14', '#6e3008', '#ff8a2a', '255,140,40'],
-    fire:   ['#b89a14', '#6e5a08', '#ffd84a', '255,215,60']
+    fire:   ['#b89a14', '#6e5a08', '#ffd84a', '255,215,60'],
+    upgrade: ['#6a2aa8', '#2e1050', '#b060ff', '170,80,255']
   },
   perkIcon(c, x, y, perk, col) {
     c.fillStyle = col;
@@ -147,6 +149,34 @@ const Sprites = {
     c.fillStyle = on ? light : this.PERK_PAL[perk][1]; c.fillRect(bx, by + 1, 14, 3);
     c.fillStyle = on ? '#ffffff' : light; c.fillRect(bx + 2, by + 2, 10, 1);
     this.perkIcon(c, bx + 3, by + 9, perk, on ? light : this.PERK_PAL[perk][0]);
+    return on ? glow : null;
+  },
+  // machine d'amélioration d'arme : presse en fonte rivetée, 2 cases de large, chambre violette où l'on glisse l'arme
+  // (x, y) = coin haut-gauche de sa première case ; elle dépasse un peu sur la case au-dessus
+  forge(c, x, y) {
+    const [main, dark] = this.PERK_PAL.upgrade, F = rectFn(c, Math.round(x) + 1, Math.round(y) - 6);
+    F('rgba(0,0,0,.45)', -1, 21, 32, 2);
+    F('#2e2a28', 0, 4, 30, 15); F('#4a4540', 0, 4, 30, 1); F('#1c1a18', 0, 18, 30, 1);    // corps en fonte
+    F('#1a1614', -1, 18, 32, 4);                                                          // socle
+    for (let i = 0; i < 32; i += 4) { F('#b89a14', i - 1, 19, 2, 2); }                    // bandes de danger
+    [[1, 5], [28, 5], [1, 16], [28, 16]].forEach(([a, b]) => F('#77706a', a, b, 1, 1));    // rivets
+    F('#45403c', 2, 6, 4, 11); F('#6a645e', 3, 6, 1, 11); F('#45403c', 24, 6, 4, 11); F('#6a645e', 25, 6, 1, 11); // pistons
+    F('#5a5550', 1, 9, 6, 1); F('#5a5550', 23, 9, 6, 1);
+    F('#0a0410', 8, 6, 14, 11); F(dark, 9, 7, 12, 9);                                    // chambre (allumée dans forgeLit)
+    F('#140808', 5, 0, 20, 5); F(main, 6, 1, 18, 3);                                      // enseigne
+    F('#5a0808', 4, 12, 1, 4); F('#7a0c0c', 22, 15, 2, 1); F('#4a0606', 12, 17, 5, 1);    // sang séché
+  },
+  // enseigne, chambre et crâne lumineux par-dessus l'obscurité ; renvoie la lueur (ou null quand elle grésille)
+  forgeLit(c, x, y, t) {
+    const [main, dark, light, glow] = this.PERK_PAL.upgrade, bx = Math.round(x) + 1, by = Math.round(y) - 6;
+    const on = Math.sin(t * 1.7 + 3) > -0.92, pulse = 0.5 + Math.sin(t * 5) * 0.5;
+    c.fillStyle = on ? light : dark; c.fillRect(bx + 6, by + 1, 18, 3);
+    c.fillStyle = on ? '#ffffff' : main; c.fillRect(bx + 8, by + 2, 14, 1);
+    c.fillStyle = on ? main : dark; c.fillRect(bx + 9, by + 7, 12, 9);
+    c.fillStyle = `rgba(230,190,255,${on ? 0.25 + pulse * 0.35 : 0.1})`; c.fillRect(bx + 10, by + 8, 10, 7);
+    c.fillStyle = '#140820'; c.fillRect(bx + 10, by + 13, 10, 1); c.fillRect(bx + 11, by + 14, 3, 1);   // fusil dans la chambre
+    this.perkIcon(c, bx + 12, by + 7, 'upgrade', on ? '#ffffff' : main);
+    if (on && pulse > 0.85) { c.fillStyle = '#ffe0ff'; c.fillRect(bx + 8 + (t * 37 % 14 | 0), by + 6, 1, 1); }   // étincelle
     return on ? glow : null;
   },
 
