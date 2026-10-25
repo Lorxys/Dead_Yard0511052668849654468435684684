@@ -32,6 +32,22 @@ const Game = {
     this.portrait = matchMedia('(orientation: portrait) and (pointer: coarse)');
     this.last = performance.now();
     requestAnimationFrame(t => this.loop(t));
+    // mise à jour automatique au lancement et au retour sur l'appli (seulement depuis le menu, jamais en pleine partie)
+    this.checkUpdate();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && this.state === 'menu') this.checkUpdate(); });
+  },
+  // le téléphone peut garder une ancienne index.html en cache : on demande la version en ligne sans cache
+  // et, si elle diffère de celle affichée dans le menu, on recharge la page à une adresse neuve (?v=...)
+  checkUpdate() {
+    if (!location.protocol.startsWith('http')) return;
+    const cur = document.querySelector('#menu .version').textContent.trim();
+    fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.text())
+      .then(html => {
+        const m = html.match(/class="version">v([\d.]+)</);
+        if (m && 'v' + m[1] !== cur && !location.search.includes('v=' + m[1])) location.replace(location.pathname + '?v=' + m[1]);
+      })
+      .catch(() => {});
   },
   // joueur contrôlé sur cette machine
   get me() { return this.players.find(p => p.id === this.localId); },
