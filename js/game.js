@@ -420,7 +420,7 @@ const Game = {
       if (z.moanT > 0) continue;
       z.moanT = 3 + Math.random() * 6;
       const d = Math.hypot(z.x - p.x, z.y - p.y);
-      if (d < 260 && Sound.moanFree()) Sound.moan({ vol: Math.pow(1 - d / 260, 1.5), pan: (z.x - p.x) / 200 });
+      if (d < 260 && Sound.moanFree()) Sound.growl({ vol: Math.pow(1 - d / 260, 1.5), pan: (z.x - p.x) / 200 });
     }
     const m = this.state === 'play' && p.alive && GameMap.nearMachine(p);
     Sound.setNear(m && m.perk !== 'box' ? m.perk : null);
@@ -494,17 +494,22 @@ const Game = {
       c.fillStyle = g; c.fillRect(x - 95, y - 95, 190, 190);
     });
     c.globalCompositeOperation = 'source-over';
-    // visée de la grenade (joystick tactile) : trajectoire en pointillés + zone d'explosion
-    if (Input.nadeDrag && p.alive && p.grenades > 0) {
-      const tg = this.nadeTarget(p, this.stickToRel(Input.nadeDrag)), dist = Math.hypot(tg.x - p.x, tg.y - p.y), R = CFG.GRENADE.radius;
-      c.fillStyle = '#ffd23a';
-      for (let i = 1; i < 16; i += 2) {
-        const k = i / 16;
-        c.fillRect(Math.round(p.x + (tg.x - p.x) * k - cam.x), Math.round(p.y + (tg.y - p.y) * k - Math.sin(Math.PI * k) * (8 + dist * 0.12) - cam.y), 1, 1);
+    // visée de la grenade (joystick tactile, visée lissée) : trajectoire en cloche dont les points défilent vers la cible,
+    // zone d'explosion légèrement teintée qui pulse, et croix au point d'impact
+    if (Input.nadeAim && p.alive && p.grenades > 0) {
+      const tg = this.nadeTarget(p, this.stickToRel(Input.nadeAim)), dist = Math.hypot(tg.x - p.x, tg.y - p.y), R = CFG.GRENADE.radius;
+      const tx = tg.x - cam.x, ty = tg.y - cam.y, h = 8 + dist * 0.12, N = Math.max(6, Math.round(dist / 6)), ph = (t / 450) % 1;
+      c.fillStyle = 'rgba(255,60,30,' + (0.12 + Math.sin(t / 160) * 0.04) + ')';
+      c.beginPath(); c.ellipse(tx, ty, R, R * 0.75, 0, 0, 6.29); c.fill();
+      c.fillStyle = 'rgba(255,70,40,.85)';
+      for (let i = 0, n = 40; i < n; i++) { const a = i / n * 6.28 + t / 1500; if (i % 4 !== 3) c.fillRect(Math.round(tx + Math.cos(a) * R), Math.round(ty + Math.sin(a) * R * 0.75), 1, 1); }
+      for (let i = 0; i < N; i++) {
+        const k = (i + ph) / N;
+        c.fillStyle = k < 0.15 ? 'rgba(255,210,58,.5)' : '#ffd23a';
+        c.fillRect(Math.round(p.x - cam.x + (tg.x - p.x) * k), Math.round(p.y - cam.y + (tg.y - p.y) * k - Math.sin(Math.PI * k) * h), 1, 1);
       }
-      c.fillStyle = 'rgba(255,70,40,.8)';
-      for (let a = 0; a < 6.28; a += 0.2) c.fillRect(Math.round(tg.x + Math.cos(a) * R - cam.x), Math.round(tg.y + Math.sin(a) * R * 0.75 - cam.y), 1, 1);
-      c.fillRect(Math.round(tg.x - cam.x) - 1, Math.round(tg.y - cam.y), 3, 1); c.fillRect(Math.round(tg.x - cam.x), Math.round(tg.y - cam.y) - 1, 1, 3);
+      c.fillStyle = '#ffd23a';
+      c.fillRect(Math.round(tx) - 2, Math.round(ty), 5, 1); c.fillRect(Math.round(tx), Math.round(ty) - 2, 1, 5);
     }
     // voile rouge quand on prend un coup
     if (p.hurtT > 0) { c.fillStyle = `rgba(150,0,0,${p.hurtT * 0.9})`; c.fillRect(0, 0, this.W, this.H); }
@@ -521,6 +526,7 @@ const Game = {
       }
     }
     this.events.splice(0).forEach(e => this.onEvent(e));
+    Input.update(dt);
     if (this.state !== 'menu') this.updateVisuals(dt);
     this.draw(t);
     requestAnimationFrame(t2 => this.loop(t2));

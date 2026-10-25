@@ -128,32 +128,71 @@ const Sound = {
     this.noise(out, t, 0.07, { type: 'lowpass', f: 350 + Math.random() * 250 });
     this.noise(out, t + 0.02, 0.05, { f: 900, q: 2, v: 0.25 });
   },
-  // gémissement de zombie : voix rauque et chevrotante, « aaah » qui se referme en « ouuh »
-  moan(o = {}) {
-    if (!this.ctx) return;
-    const c = this.ctx, [t, out] = this.at(o, 0.5, 0.3), dur = 0.8 + Math.random() * 1.1, f0 = 80 + Math.random() * 70;
-    const s = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), f = c.createBiquadFilter(), g = c.createGain();
-    s.type = 'sawtooth';
-    s.frequency.setValueAtTime(f0 * 1.25, t); s.frequency.linearRampToValueAtTime(f0, t + dur * 0.4); s.frequency.linearRampToValueAtTime(f0 * 0.7, t + dur);
-    lfo.frequency.value = 5 + Math.random() * 4; lg.gain.value = f0 * 0.06; lfo.connect(lg); lg.connect(s.frequency);
-    f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(720, t); f.frequency.linearRampToValueAtTime(380, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.15);
-    g.gain.setValueAtTime(0.9, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(out);
-    s.start(t); lfo.start(t); s.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
-    this.noise(out, t, dur * 0.8, { f: 1200, q: 1.5, a: 0.1, v: 0.12 });   // souffle
+  // voix synthétique : dents de scie désaccordées -> râle (modulation rapide du volume) -> saturation -> formants (voyelle)
+  // o = { pitch (courbe de hauteur), det, fry (Hz du râle, 0 = sans), dist, breath, formants: [[[début, fin], Q, gain]], v, a }
+  voice(out, t, dur, o) {
+    const c = this.ctx, src = this.gain(1), am = this.gain(o.fry ? 0.5 : 1), env = c.createGain(), v = o.v || 0.8;
+    for (const det of o.det || [0]) {
+      const s = c.createOscillator(); s.type = 'sawtooth'; s.detune.value = det;
+      s.frequency.setValueCurveAtTime(o.pitch, t, dur); s.connect(src); s.start(t); s.stop(t + dur + 0.05);
+    }
+    if (o.breath) this.noise(src, t, dur, { f: 1500, q: 0.8, a: 0.05, v: o.breath });
+    src.connect(am);
+    if (o.fry) {
+      const l = c.createOscillator(); l.type = 'square'; l.frequency.value = o.fry;
+      l.connect(this.gain(0.5, am.gain)); l.start(t); l.stop(t + dur + 0.05);
+    }
+    let n = am;
+    if (o.dist) { const w = c.createWaveShaper(); w.curve = this.distCurve(); am.connect(w); n = w; }
+    for (const [[f1, f2], q, g] of o.formants) {
+      const b = c.createBiquadFilter(); b.type = 'bandpass'; b.Q.value = q;
+      b.frequency.setValueAtTime(f1, t); b.frequency.linearRampToValueAtTime(f2, t + dur);
+      n.connect(b); b.connect(this.gain(g, env));
+    }
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(v, t + (o.a || 0.06));
+    env.gain.setValueAtTime(v, t + dur * 0.7); env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    env.connect(out);
   },
-  // gémissements limités à 3 par seconde pour ne pas saturer quand la horde est grande
+  distCurve() {
+    if (!this.curve) {
+      const n = 1024, k = 40; this.curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; this.curve[i] = (1 + k) * x / (1 + k * Math.abs(x)); }
+    }
+    return this.curve;
+  },
+  // cri de zombie façon Call of Duty : voix grave, éraillée et saturée
+  // growl = râle profond qui gargouille, snarl = grognement agressif et sec, scream = hurlement aigu (plus rare)
+  GROWLS: {   // [hauteur, + aléa, durée, + aléa, râle (Hz), formants, souffle]
+    growl:  [55, 30, 1, 1.2, 32, [[[420, 260], 6, 1], [[1000, 800], 8, 0.5]], 0.35],
+    snarl:  [95, 40, 0.45, 0.5, 45, [[[750, 500], 5, 1], [[1600, 1300], 7, 0.6]], 0.5],
+    scream: [300, 120, 0.8, 0.5, 0, [[[900, 1100], 6, 1], [[2400, 2600], 8, 0.6]], 0.25]
+  },
+  growl(o = {}) {
+    if (!this.ctx) return;
+    const r = Math.random(), kind = o.kind || (r < 0.55 ? 'growl' : r < 0.9 ? 'snarl' : 'scream');
+    const [f, fr, d0, dr, fry, formants, breath] = this.GROWLS[kind], dur = d0 + Math.random() * dr, f0 = f + Math.random() * fr;
+    const pitch = new Float32Array(16);   // hauteur qui tremble au hasard, retombe (ou monte puis retombe pour le hurlement)
+    for (let i = 0; i < 16; i++) {
+      const k = i / 15;
+      pitch[i] = f0 * (kind === 'scream' ? 0.8 + 0.6 * Math.sin(k * Math.PI) : 1.15 - 0.35 * k) * (0.88 + Math.random() * 0.24);
+    }
+    const [t, out] = this.at(o, kind === 'scream' ? 0.35 : 0.55, 0.3);
+    this.voice(out, t, dur, { pitch, det: [0, 11, -14], fry: fry && fry + Math.random() * 15, dist: true, breath, formants, a: kind === 'snarl' ? 0.02 : 0.08 });
+  },
+  // cris limités à 3 par seconde pour ne pas saturer quand la horde est grande
   moanFree() { const n = performance.now(); this.moans = this.moans.filter(x => n - x < 1000); if (this.moans.length >= 3) return false; this.moans.push(n); return true; },
-  // morsure : grognement + choc
+  // morsure : dents qui claquent, chair qui se déchire, sang qui gicle, cri de douleur du soldat, et le zombie qui grogne
   bite() {
     if (!this.ctx) return;
-    const [t, out] = this.at({}, 0.5, 0.15);
-    this.tone(out, t, 120, 0.3, { type: 'sawtooth', to: 60, lp: 900, v: 0.6 });
-    this.noise(out, t, 0.2, { f: 600, q: 2, v: 0.5 });
-    this.tone(out, t, 80, 0.15, { to: 40, v: 0.8 });
-  },
-  // zombie abattu : bruit mouillé
+    const [t, out] = this.at({}, 0.75, 0.15);
+    this.noise(out, t, 0.05, { f: 3500, q: 2, v: 0.8 }); this.noise(out, t + 0.03, 0.06, { f: 2200, q: 3, v: 0.6 });   // crac
+    this.noise(out, t + 0.05, 0.25, { f: 1800, fEnd: 450, q: 2, v: 0.5 });                                               // déchirure
+    for (let i = 0; i < 8; i++) this.tone(out, t + 0.12 + i * 0.035 + Math.random() * 0.02, 180 + Math.random() * 220, 0.04, { to: 500 + Math.random() * 300, v: 0.3 });   // glouglou du sang
+    this.noise(out, t + 0.1, 0.35, { type: 'lowpass', f: 700, v: 0.5 });                                                 // éclaboussure
+    this.voice(out, t + 0.08, 0.32, { pitch: new Float32Array([175, 160, 140, 118]), det: [0, 7], breath: 0.25, v: 0.5,   // « argh ! »
+      formants: [[[680, 600], 5, 1], [[1150, 1000], 6, 0.5]] });
+    this.growl({ kind: 'snarl', vol: 0.8 });
+  },  // zombie abattu : bruit mouillé
   splat(o = {}) {
     if (!this.ctx) return;
     const [t, out] = this.at(o, 0.6, 0.1);
@@ -253,7 +292,7 @@ const Sound = {
       for (let i = 0, n = 3 + Math.random() * 6 | 0; i < n; i++) this.shot(w, { ...far(0.5), t: t0 + i * (w === 'smg' ? 0.11 : 0.35) });
     }
     if (Math.random() < 0.3) this.explosion({ ...far(0.7), t: t + Math.random() * B });
-    if (Math.random() < 0.6) this.moan({ ...far(0.9), t: t + Math.random() * B });
+    if (Math.random() < 0.6) this.growl({ ...far(0.9), t: t + Math.random() * B, kind: Math.random() < 0.3 ? 'scream' : 'growl' });
   },
 
   // ---------- programmation à l'avance (musique du menu et jingles) ----------

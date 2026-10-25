@@ -3,6 +3,7 @@
 const Input = {
   mouse: { x: 0, y: 0, down: false }, keys: {}, ptr: { L: null, R: null },
   nadeDrag: null,    // visée en cours sur le joystick grenade ({x,y} de longueur ≤ 1)
+  nadeAim: null,     // la même, lissée image par image pour un aperçu de trajectoire fluide
   nadeQueue: null,   // lancer en attente : { stick: {x,y} } ou { screen: {x,y} }
   buyQueue: false,   // achat demandé (bouton « Acheter » ou touche E)
   init(el) {
@@ -36,25 +37,30 @@ const Input = {
       }
     };
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
-    // joystick grenade (fixe, au-dessus de la zone de tir) : glisser pour viser, relâcher pour lancer
-    const G = document.getElementById('sG'), GR = 40;
+    // joystick grenade (fixe, au-dessus de la zone de tir) : glisser pour viser, relâcher pour lancer.
+    // Le centre de visée est l'endroit où le doigt se pose (pas de saut au premier mouvement) et la course
+    // est longue (GR px) pour un réglage fin de la distance ; le pommeau ne suit qu'à moitié pour rester dans l'anneau.
+    const G = document.getElementById('sG'), GR = 64;
     let gp = null;
     G.addEventListener('pointerdown', e => {
-      const r = G.getBoundingClientRect();
-      gp = { id: e.pointerId, ox: r.left + r.width / 2, oy: r.top + r.height / 2 };
-      this.nadeDrag = { x: 0, y: 0 }; G.setPointerCapture(e.pointerId); G.classList.add('on');
+      gp = { id: e.pointerId, ox: e.clientX, oy: e.clientY };
+      this.nadeDrag = { x: 0, y: 0 }; this.nadeAim = { x: 0, y: 0 };
+      G.setPointerCapture(e.pointerId); G.classList.add('on');
     });
     G.addEventListener('pointermove', e => {
       if (!gp || e.pointerId !== gp.id) return;
       let dx = e.clientX - gp.ox, dy = e.clientY - gp.oy; const d = Math.hypot(dx, dy);
       if (d > GR) { dx *= GR / d; dy *= GR / d; }
       this.nadeDrag = { x: dx / GR, y: dy / GR };
-      G.firstElementChild.style.transform = `translate(${dx}px,${dy}px)`;
+      G.firstElementChild.style.transform = `translate(${dx * 0.45}px,${dy * 0.45}px)`;
     });
     const gEnd = e => {
       if (!gp || e.pointerId !== gp.id) return;
-      if (e.type === 'pointerup') this.nadeQueue = { stick: this.nadeDrag };
-      gp = null; this.nadeDrag = null; G.firstElementChild.style.transform = ''; G.classList.remove('on');
+      if (e.type === 'pointerup') {
+        this.nadeQueue = { stick: this.nadeDrag };
+        if (navigator.vibrate) navigator.vibrate(12);   // petit retour sous le doigt au lancer
+      }
+      gp = null; this.nadeDrag = this.nadeAim = null; G.firstElementChild.style.transform = ''; G.classList.remove('on');
     };
     G.addEventListener('pointerup', gEnd); G.addEventListener('pointercancel', gEnd);
     addEventListener('keydown', e => {
@@ -70,6 +76,12 @@ const Input = {
     const k = this.keys;
     return { x: (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0),
              y: (k.KeyS || k.ArrowDown ? 1 : 0) - (k.KeyW || k.ArrowUp ? 1 : 0) };
+  },
+  // lissage de la visée grenade (appelé à chaque image) : l'aperçu glisse vers le doigt au lieu de sauter de pixel en pixel
+  update(dt) {
+    const d = this.nadeDrag, a = this.nadeAim; if (!d || !a) return;
+    const k = 1 - Math.exp(-dt * 22);
+    a.x += (d.x - a.x) * k; a.y += (d.y - a.y) * k;
   },
   // récupère (et consomme) le lancer de grenade en attente
   takeGrenade() { const q = this.nadeQueue; this.nadeQueue = null; return q; },
