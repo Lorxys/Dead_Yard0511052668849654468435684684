@@ -14,6 +14,7 @@ const MenuScene = {
       fn((col, x, y, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); }, g);
       return c;
     };
+    this.hero = this.hero || this.buildHero();
     this.back = layer((P, g) => this.drawBack(P, g, W, H, hz, rnd));
     this.front = layer(P => this.drawFront(P, W, H, hz, rnd));
     this.walkers = Array.from({ length: 7 }, () => ({ x0: rnd() * W, sp: 0.004 + rnd() * 0.004, d: rnd() < 0.5 ? -1 : 1, ph: rnd() * 9 }));
@@ -148,6 +149,120 @@ const MenuScene = {
     P(RIM, hx + 3, hy - 20, 1, 1); P(RIM, hx + 5, hy - 21, 1, 1); P(RIM, hx + 7, hy - 20, 1, 1);
   },
 
+  // portrait du GI en gros plan (buste), éclairé en rouge par la lune à droite, couvert de sang
+  buildHero() {
+    const HW = 124, HH = 150, c = document.createElement('canvas'); c.width = HW; c.height = HH;
+    const g = c.getContext('2d');
+    let s = 5; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    const P = (col, x, y, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+    const tone = (ramp, v, x, y) => ramp[Math.max(0, Math.min(ramp.length - 1, Math.floor(v * ramp.length + dither(x, y) - 0.5)))];
+    const ell = (cx, cy, rx, ry, fn) => {
+      for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x / rx) ** 2 + (y / ry) ** 2 <= 1) fn(cx + x, cy + y, x / rx, y / ry);
+    };
+    const inPoly = (pts, x, y) => {
+      let ins = false;
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const [xi, yi] = pts[i], [xj, yj] = pts[j];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) ins = !ins;
+      }
+      return ins;
+    };
+    const poly = (pts, fn) => {
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+      for (let y = Math.min(...ys); y <= Math.max(...ys); y++) for (let x = Math.min(...xs); x <= Math.max(...xs); x++)
+        if (inPoly(pts, x + 0.5, y + 0.5)) fn(x, y, !inPoly(pts, x + 0.5, y - 0.5), !inPoly(pts, x + 1.5, y + 0.5));
+    };
+    // éclaboussures de sang avec coulures vers le bas
+    const spatter = (cx, cy, r, n, drips) => {
+      for (let i = 0; i < n; i++) { const a = rnd() * 6.28, d = rnd() ** 1.5 * r; P(BLOOD_R[rnd() * 4 | 0], cx + Math.cos(a) * d, cy + Math.sin(a) * d, rnd() < 0.3 ? 2 : 1, 1); }
+      for (let i = 0; i < drips; i++) { const x = cx + (rnd() - 0.5) * r, y = cy + (rnd() - 0.5) * r * 0.5, l = 4 + rnd() * 10; P('#5a0606', x, y, 1, l); P('#7e0a0a', x, y + l, 1, 1); }
+    };
+    const BLOOD_R = ['#3a0404', '#5a0606', '#7e0a0a', '#a01212'];
+    const JACKET = ['#1a1a0e', '#262616', '#33331d', '#424226', '#525230', '#64603a'];
+    const SKIN = ['#3e2216', '#5e3a28', '#82543a', '#a8704c', '#c88e64', '#e0aa7c'];
+    const HELM = ['#161b0e', '#222a14', '#323d1e', '#435028', '#566634', '#6c7c42'];
+    const WOOD = ['#26150a', '#3e2410', '#5a3418', '#784622', '#94602e'];
+    const METAL = ['#0e0e11', '#1c1c20', '#2e2e34', '#46464e', '#66666e'];
+    const RIM = '#b8452a', RIM2 = '#e06a3a';
+
+    // buste : veste M1941, éclairée par la droite
+    poly([[2, 150], [6, 120], [16, 105], [38, 96], [52, 93], [68, 93], [86, 97], [104, 106], [114, 122], [120, 150]], (x, y, top, right) => {
+      let v = 0.32 + (x - 60) / 60 * 0.3 - (y - 95) / 55 * 0.12;
+      if ((x * 3 + y * 2) % 23 === 0 || (x - y * 2 + 400) % 31 === 0) v -= 0.18;   // plis du tissu
+      P(top && x > 56 ? RIM : right ? RIM2 : tone(JACKET, v, x, y), x, y);
+    });
+    // col ouvert + bretelles de suspension avec boucles
+    poly([[46, 93], [74, 93], [60, 114]], (x, y) => P(tone(JACKET, 0.08, x, y), x, y));
+    poly([[52, 93], [60, 106], [68, 93]], (x, y) => P(tone(SKIN, 0.2, x, y), x, y));
+    for (let y = 98; y < 150; y++) { P('#2a2414', 30 - (y - 98) * 0.12, y, 4, 1); P('#3a3220', 31 - (y - 98) * 0.12, y, 1, 1); P('#2a2414', 92 + (y - 98) * 0.12, y, 4, 1); P('#4a4028', 94 + (y - 98) * 0.12, y, 1, 1); }
+    P('#8a7a4a', 28, 124, 6, 4); P('#2a2414', 30, 125, 2, 2); P('#a8925a', 93, 130, 6, 4); P('#2a2414', 95, 131, 2, 2);
+    // cou dans l'ombre du visage
+    for (let y = 84; y < 98; y++) for (let x = 51; x < 70; x++) P(tone(SKIN, 0.18 + (x - 51) / 19 * 0.25 - (98 - y) / 14 * 0.1, x, y), x, y);
+    // oreille
+    ell(45, 70, 3, 5, (x, y, nx) => P(tone(SKIN, 0.35 + nx * 0.15, x, y), x, y)); P(SKIN[1], 45, 69, 1, 3);
+    // tête : modelé éclairé à droite, mâchoire carrée, barbe de plusieurs jours
+    ell(60, 68, 16, 19, (x, y, nx, ny) => {
+      if (ny > 0.45 && Math.abs(nx) > 1 - (ny - 0.45) * 0.8) return;
+      let v = 0.45 + nx * 0.4 - ny * 0.1;
+      if (y < 62) v -= 0.25;                                      // ombre du casque
+      if (ny > 0.4 && dither(x, y) > 0.45) v -= 0.22;             // barbe
+      P(nx > 0.82 && ny < 0.6 ? RIM2 : tone(SKIN, v, x, y), x, y);
+    });
+    // sourcils froncés, yeux, nez, bouche
+    [[53, 61], [54, 61], [55, 62], [56, 62], [57, 63], [58, 63]].forEach(([x, y]) => P('#2a1a10', x, y, 1, 2));
+    [[63, 63], [64, 63], [65, 62], [66, 62], [67, 61], [68, 61]].forEach(([x, y]) => P('#2a1a10', x, y, 1, 2));
+    P('#cfc2ac', 54, 65, 4, 2); P('#cfc2ac', 63, 65, 4, 2); P('#1a1008', 56, 65, 2, 2); P('#1a1008', 65, 65, 2, 2);
+    P('#fff4e0', 57, 65); P('#fff4e0', 66, 65);
+    P(SKIN[1], 54, 67, 4, 1); P(SKIN[1], 63, 67, 4, 1);           // cernes
+    for (let y = 66; y < 74; y++) { P(SKIN[1], 61, y); P(SKIN[5], 63, y - 1); }
+    P(SKIN[2], 61, 74, 4, 1); P('#2a160c', 62, 74); P(SKIN[4], 64, 73);
+    P('#3a1a10', 55, 79, 11, 1); P(SKIN[2], 56, 80, 9, 1); P('#3a1a10', 54, 80); P(SKIN[3], 57, 81, 6, 1);
+    // cigarette au coin des lèvres (la braise est animée dans draw)
+    P('#e8e0d0', 66, 78, 7, 2); P('#b8b0a0', 66, 79, 7, 1); P('#7a7068', 73, 78, 1, 2);
+    // blessures : entaille sur la joue, sang qui coule du casque sur le visage
+    for (let i = 0; i < 5; i++) { P('#5a0a08', 48 + i * 0.7, 70 + i); P('#a01212', 49 + i * 0.7, 70 + i); }
+    for (let y = 58; y < 77; y++) { P('#7e0a0a', 67 + (y > 70 ? 1 : 0), y); if (y < 72) P('#5a0606', 68, y); }
+    P('#a01212', 68, 77, 1, 2);
+    for (let y = 59; y < 71; y++) P('#6e0808', 48, y); P('#8e0e0e', 48, 71, 1, 2);
+    spatter(54, 74, 5, 14, 0); spatter(70, 84, 4, 8, 1);
+    // casque M1 : dôme avec filet de camouflage, bord, jugulaire pendante
+    ell(60, 52, 25, 16, (x, y, nx, ny) => {
+      if (y > 58) return;
+      let v = 0.5 + nx * 0.3 - ny * 0.35;
+      if ((x + y) % 5 === 0 || (x - y + 100) % 5 === 0) v -= 0.17;
+      P(nx > 0.86 ? RIM : tone(HELM, v, x, y), x, y);
+    });
+    for (let x = 32; x <= 88; x++) {
+      const nx = (x - 60) / 28, top = 58 + Math.round(Math.abs(nx) ** 2 * 2);
+      P(nx > 0.8 ? RIM2 : HELM[4], x, top); P(tone(HELM, 0.25 + nx * 0.2, x, top + 1), x, top + 1, 1, 2);
+    }
+    for (let y = 60; y < 90; y++) P('#2e2a18', 43 + (y - 60) * 0.12, y, 2, 1);
+    P('#8a7a4a', 45, 90, 3, 2);
+    spatter(72, 46, 6, 22, 0); spatter(48, 50, 3, 8, 0);
+    // fusil en travers de la poitrine, baïonnette ensanglantée vers le haut
+    const ax = 48, ay = 150, bx = 122, by = 6, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+    for (let d = 0; d < len; d++) {
+      const t = d / len, w = t < 0.18 ? 8 : t < 0.62 ? 6 : t < 0.8 ? 3 : t < 0.98 ? 2 : 1;
+      const metal = (t > 0.44 && t < 0.54) || t >= 0.62, blade = t >= 0.8;
+      for (let k = -w / 2; k < w / 2; k++) {
+        const x = ax + ux * d - uy * k, y = ay + uy * d + ux * k, lit = 0.5 - k / w * 0.8;
+        let col = blade ? tone(['#3a3a40', '#6a6a72', '#9a9aa2', '#c8c8d0'], lit, x | 0, y | 0) : tone(metal ? METAL : WOOD, lit, x | 0, y | 0);
+        if (blade && t > 0.87 && rnd() < 0.75) col = BLOOD_R[1 + (rnd() * 3 | 0)];
+        P(col, x, y); P(col, x + 0.5, y);
+      }
+    }
+    P(BLOOD_R[2], bx - 9, by + 16, 1, 6); P(BLOOD_R[3], bx - 9, by + 22);    // goutte qui coule de la lame
+    // mains qui serrent le fusil, couvertes de sang
+    [[0.28, 6, 5], [0.52, 5, 4]].forEach(([t, rx, ry]) => {
+      const hx = Math.round(ax + (bx - ax) * t), hy = Math.round(ay + (by - ay) * t);
+      ell(hx, hy, rx, ry, (x, y, nx, ny) => P(rnd() < 0.35 ? BLOOD_R[1 + (rnd() * 2 | 0)] : tone(SKIN, 0.5 + nx * 0.3 - ny * 0.2, x, y), x, y));
+      for (let i = -rx + 2; i < rx; i += 3) P(SKIN[1], hx + i, hy - 1, 1, ry);   // doigts
+    });
+    // sang sur la veste
+    spatter(30, 116, 10, 40, 4); spatter(80, 128, 8, 30, 3); spatter(100, 112, 5, 12, 2);
+    return c;
+  },
+
   draw(c, t) {
     const { W, H, hz } = this;
     c.drawImage(this.back, 0, 0);
@@ -171,6 +286,15 @@ const MenuScene = {
       M(2, -14, 7, 2); M(2, -11, 6, 2); M(-1, -19, 5, 4); M(-2, -21, 7, 2); M(-3, -19, 9, 1);
       M(2, -19, 3, 3, 'rgba(255,150,30,.3)'); M(3, -18, 1, 1, '#ffb020');
     });
+    // le soldat au premier plan à droite (retourné pour regarder vers le centre), qui respire ; braise de cigarette et fumée
+    const HW = this.hero.width, hx = W - Math.round(W * 0.03) + 6 - HW, hy = H - this.hero.height + 8 + (Math.sin(t / 900) > 0 ? 1 : 0);
+    c.save(); c.translate(hx + HW, hy); c.scale(-1, 1); c.drawImage(this.hero, 0, 0); c.restore();
+    c.fillStyle = Math.sin(t / 220) > 0.3 ? '#ffc040' : '#ff5a1e'; c.fillRect(hx + HW - 74, hy + 78, 1, 2);
+    for (let i = 0; i < 6; i++) {
+      const age = (t / 70 + i * 7) % 40;
+      c.fillStyle = `rgba(170,150,150,${0.35 * (1 - age / 40)})`;
+      c.fillRect(Math.round(hx + HW - 75 - Math.sin(age * 0.25 + i) * 2 - age * 0.15), Math.round(hy + 77 - age), 1, 1);
+    }
     // brume rougeâtre
     c.fillStyle = 'rgba(110,30,30,0.07)';
     for (let i = 0; i < 5; i++) {

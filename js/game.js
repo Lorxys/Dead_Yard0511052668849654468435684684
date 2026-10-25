@@ -8,9 +8,17 @@ const Game = {
     GameMap.init(); Input.init(document.getElementById('touch'));
     document.getElementById('restart').onclick = () => this.reset();
     // menu : le jeu ne démarre qu'au clic sur Jouer
-    document.getElementById('play').onclick = () => { document.getElementById('menu').classList.remove('show'); this.reset(); };
+    document.getElementById('play').onclick = () => { document.getElementById('menu').classList.remove('show'); this.lockLandscape(); this.reset(); };
+    // mobile à la verticale : écran « tourne ton appareil » et jeu en pause
+    this.portrait = matchMedia('(orientation: portrait) and (pointer: coarse)');
     this.last = performance.now();
     requestAnimationFrame(t => this.loop(t));
+  },
+  // sur mobile : plein écran + orientation bloquée à l'horizontale (Android ; iOS ne le permet pas)
+  lockLandscape() {
+    const el = document.documentElement;
+    if (!matchMedia('(pointer: coarse)').matches || !el.requestFullscreen) return;
+    el.requestFullscreen().then(() => screen.orientation.lock('landscape')).catch(() => {});
   },
   resize() {
     const k = this.state === 'menu' ? 2 : 1;   // le décor du menu est plus détaillé
@@ -125,7 +133,7 @@ const Game = {
   },
   loop(t) {
     const dt = Math.min(0.05, (t - this.last) / 1000); this.last = t;
-    if (this.state === 'play') this.update(dt);
+    if (this.state === 'play' && !this.portrait.matches) this.update(dt);
     this.draw(t);
     requestAnimationFrame(t2 => this.loop(t2));
   }

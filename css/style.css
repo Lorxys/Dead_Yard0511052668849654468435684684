@@ -35,7 +35,7 @@ button:active{transform:translateY(3px)}
 #menu>*{position:relative;z-index:2}
 /* lignes de balayage + vignette */
 #menu::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
-  background:repeating-linear-gradient(rgba(0,0,0,.18) 0 2px,transparent 2px 4px),radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.8) 100%)}
+  background:repeating-linear-gradient(rgba(0,0,0,.18) 0 2px,transparent 2px 4px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
 #menu .sub{color:#a08a6a;font-size:clamp(8px,2.2vw,12px);letter-spacing:4px;text-transform:uppercase;text-shadow:2px 2px 0 #000}
 #menu .tag{color:#7e6a58;font-size:clamp(7px,1.8vw,10px);line-height:2;text-shadow:2px 2px 0 #000}
 /* titre rouge sang en dégradé à paliers, qui grésille et dégouline */
@@ -45,6 +45,17 @@ button:active{transform:translateY(3px)}
 #menu h1{font-size:clamp(28px,8.5vw,64px);letter-spacing:3px;animation:flicker 6s steps(1) infinite}
 #menu h1 .drip,#over h1 .drip{top:80%}
 @keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.35}93%{opacity:1}96%{opacity:.6}97%{opacity:1}}
+
+/* ---- Mobile tenu à la verticale : on demande de tourner l'appareil (le jeu est en pause) ---- */
+#rotate{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;gap:34px;padding:16px;text-align:center;
+  background:radial-gradient(ellipse at center,#2a0505,#050203 70%)}
+@media (orientation:portrait) and (pointer:coarse){#rotate{display:flex}}
+#rotate p{color:#c41a14;font-size:12px;line-height:2;text-shadow:2px 2px 0 #000,0 0 10px rgba(200,0,0,.5)}
+/* téléphone en pixels qui pivote vers l'horizontale */
+#rotate .phone{position:relative;width:44px;height:76px;background:#1a0606;
+  box-shadow:0 -4px 0 #c9b48a,0 4px 0 #c9b48a,-4px 0 0 #c9b48a,4px 0 0 #c9b48a,inset 0 0 0 4px #5a0808;animation:turn 2.4s steps(1) infinite}
+#rotate .phone i{position:absolute;left:50%;bottom:6px;width:8px;height:4px;margin-left:-4px;background:#c9b48a}
+@keyframes turn{0%,45%{transform:rotate(0)}50%,95%{transform:rotate(-90deg)}}
 
 /* ---- Écran de mort ---- */
 #over{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(60,0,0,.78),rgba(5,0,0,.96));display:none;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:16px;text-align:center}

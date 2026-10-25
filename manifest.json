@@ -1,0 +1,9 @@
+{
+  "name": "Dead Yard",
+  "short_name": "Dead Yard",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#050203",
+  "theme_color": "#050203"
+}
