@@ -66,7 +66,7 @@ const Game = {
       if (b.life <= 0) return false;
       if (GameMap.solidAt(b.x, b.y)) { this.blood(b.x, b.y, 4, '#8a7a5a', false); return false; }
       for (const z of this.zs) if (Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
-        z.hp--; z.hit = 0.08; z.x += b.vx * 0.02; z.y += b.vy * 0.02;
+        z.hp--; z.hit = 0.08; moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
         this.blood(b.x, b.y, 10); GameMap.splat(z.x, z.y + 3, 3);
         if (z.hp <= 0) {
           this.score += 10; this.blood(z.x, z.y - 4, 30); this.blood(z.x, z.y - 4, 5, '#3a0404');

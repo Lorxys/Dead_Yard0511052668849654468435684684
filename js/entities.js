@@ -35,19 +35,24 @@ class Player {
 class Zombie {
   constructor(x, y, wave) {
     this.x = x; this.y = y; this.r = 4; this.a = 0; this.t = Math.random() * 9; this.hit = 0; this.cd = 0;
-    this.v = Math.random() * 4 | 0;
+    this.v = Math.random() * 4 | 0; this.stuck = 0; this.detour = 0;
     this.hp = 2 + Math.floor(wave / 3);
     this.sp = CFG.ZOMBIE.speed + Math.min(wave * 2, 20) + Math.random() * 6;
   }
   update(dt, p) {
     // fonce droit sur le joueur s'il le voit, sinon contourne les obstacles en suivant le champ de distances
     let tx = p.x, ty = p.y;
-    if (!GameMap.clearPath(this.x, this.y, p.x, p.y, this.r)) {
+    if (this.detour > 0 || !GameMap.clearPath(this.x, this.y, p.x, p.y, this.r)) {
       const n = GameMap.nextStep(this.x, this.y);
       if (n) { tx = n.x; ty = n.y; }
     }
     this.a = Math.atan2(ty - this.y, tx - this.x);
+    const ox = this.x, oy = this.y;
     moveEntity(this, Math.cos(this.a) * this.sp * dt, Math.sin(this.a) * this.sp * dt);
+    // sécurité : s'il n'avance presque plus, il passe en mode contournement pendant 1,5 s
+    this.stuck = Math.hypot(this.x - ox, this.y - oy) < this.sp * dt * 0.3 ? this.stuck + dt : 0;
+    this.detour -= dt;
+    if (this.stuck > 0.4 && Math.hypot(p.x - this.x, p.y - this.y) > 14) { this.detour = 1.5; this.stuck = 0; }
     this.t += dt; this.hit -= dt; this.cd -= dt;
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) { p.hurt(); this.cd = CFG.ZOMBIE.dmgCd; }
   }
