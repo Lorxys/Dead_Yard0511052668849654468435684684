@@ -40,7 +40,13 @@ class Zombie {
     this.sp = CFG.ZOMBIE.speed + Math.min(wave * 2, 20) + Math.random() * 6;
   }
   update(dt, p) {
-    this.a = Math.atan2(p.y - this.y, p.x - this.x);
+    // fonce droit sur le joueur s'il le voit, sinon contourne les obstacles en suivant le champ de distances
+    let tx = p.x, ty = p.y;
+    if (!GameMap.clearPath(this.x, this.y, p.x, p.y, this.r)) {
+      const n = GameMap.nextStep(this.x, this.y);
+      if (n) { tx = n.x; ty = n.y; }
+    }
+    this.a = Math.atan2(ty - this.y, tx - this.x);
     moveEntity(this, Math.cos(this.a) * this.sp * dt, Math.sin(this.a) * this.sp * dt);
     this.t += dt; this.hit -= dt; this.cd -= dt;
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) { p.hurt(); this.cd = CFG.ZOMBIE.dmgCd; }

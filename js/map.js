@@ -89,6 +89,41 @@ const GameMap = {
       g.fillRect(Math.round(x + Math.cos(a) * d), Math.round(y + Math.sin(a) * d * 0.7), 1 + (Math.random() * 2 | 0), 1 + (Math.random() * 2 | 0));
     }
   },
+  // champ de distances (BFS) depuis la case du joueur : chaque case connaît son nombre de pas jusqu'à lui
+  computeFlow(x, y) {
+    const { MW, MH, TILE } = CFG, sx = Math.floor(x / TILE), sy = Math.floor(y / TILE);
+    if (this.flowFrom === sx + sy * MW) return;
+    this.flowFrom = sx + sy * MW;
+    this.dist = new Array(MW * MH).fill(Infinity);
+    this.dist[this.flowFrom] = 0;
+    const q = [this.flowFrom];
+    for (let i = 0; i < q.length; i++) {
+      const cx = q[i] % MW, cy = q[i] / MW | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cx + dx, ny = cy + dy, k = nx + ny * MW;
+        if (!this.solid(nx, ny) && this.dist[k] === Infinity) { this.dist[k] = this.dist[q[i]] + 1; q.push(k); }
+      }
+    }
+  },
+  // centre de la case voisine la plus proche du joueur (diagonales autorisées sans couper les coins)
+  nextStep(x, y) {
+    const { MW, TILE } = CFG, tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
+    let best = null, bd = this.dist ? this.dist[tx + ty * MW] : Infinity;
+    if (bd === Infinity) return null;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = tx + dx, ny = ty + dy;
+      if ((!dx && !dy) || this.solid(nx, ny) || (dx && dy && (this.solid(tx + dx, ty) || this.solid(tx, ty + dy)))) continue;
+      const d = this.dist[nx + ny * MW];
+      if (d < bd) { bd = d; best = { x: (nx + 0.5) * TILE, y: (ny + 0.5) * TILE }; }
+    }
+    return best;
+  },
+  // vrai si une entité de rayon r peut aller en ligne droite de (x1,y1) à (x2,y2)
+  clearPath(x1, y1, x2, y2, r) {
+    const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 4);
+    for (let i = 1; i <= n; i++) if (this.blocked(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, r)) return false;
+    return true;
+  },
   solid(tx, ty) { return tx < 0 || ty < 0 || tx >= CFG.MW || ty >= CFG.MH || this.grid[ty][tx] > 0; },
   solidAt(x, y) { return this.solid(Math.floor(x / CFG.TILE), Math.floor(y / CFG.TILE)); },
   blocked(x, y, r) { return this.solidAt(x - r, y - r) || this.solidAt(x + r, y - r) || this.solidAt(x - r, y + r) || this.solidAt(x + r, y + r); },

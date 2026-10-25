@@ -19,7 +19,7 @@ const Game = {
     if (this.state === 'menu') MenuScene.build(this.W, this.H);
   },
   reset() {
-    this.state = 'play'; this.resize(); GameMap.render();
+    this.state = 'play'; this.resize(); GameMap.render(); GameMap.flowFrom = null;
     this.p = new Player(); this.zs = []; this.bullets = []; this.fx = []; this.lastHp = this.p.hp;
     this.wave = 0; this.score = 0; this.toSpawn = 0; this.spawnT = 0; this.shake = 0;
     document.getElementById('over').classList.remove('show'); this.nextWave();
@@ -51,6 +51,7 @@ const Game = {
       aim = { x: (Input.mouse.x - r.left) * k + this.cam.x - p.x, y: (Input.mouse.y - r.top) * k + this.cam.y - p.y, fire: true };
     }
     p.update(dt, Input.getMove(), aim, this);
+    GameMap.computeFlow(p.x, p.y);   // recalculé seulement quand le joueur change de case
     // apparition progressive des zombies
     if (this.toSpawn > 0 && (this.spawnT -= dt) <= 0) { this.spawn(); this.toSpawn--; this.spawnT = 0.7; }
     this.zs.forEach(z => z.update(dt, p));
