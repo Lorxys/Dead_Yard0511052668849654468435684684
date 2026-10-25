@@ -19,22 +19,23 @@ class Player {
     if (aim && aim.fire && this.cd <= 0) {
       this.cd = CFG.PLAYER.fireRate; this.flash = 0.05;
       const a = this.a + (Math.random() - 0.5) * 0.08, v = CFG.PLAYER.bulletSpeed;
-      game.bullets.push({ x: this.x + Math.cos(a) * 9, y: this.y + Math.sin(a) * 9 - 1, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
+      game.bullets.push({ x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
+      // douille éjectée sur le côté, elle reste au sol
+      const e = this.a + Math.PI / 2 + (Math.random() - 0.5);
+      game.fx.push({ x: this.x, y: this.y - 3, vx: Math.cos(e) * 40, vy: Math.sin(e) * 40, life: 0.25, col: '#c09a40', s: 1, stain: true });
     }
   }
   hurt() { if (this.inv > 0) return; this.hp--; this.inv = 1; }
   draw(c, cam) {
     if (this.inv > 0 && Math.floor(this.inv * 14) % 2) return;
-    Sprites.human(c, this.x - cam.x, this.y - cam.y, this.a, {
-      body: '#3b82c4', skin: '#f1c27d', hair: '#4a2f1b', eyes: '#111', legs: '#2b2b3d',
-      gun: true, step: Math.floor(this.walk) % 2, flash: this.flash > 0
-    });
+    Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0 });
   }
 }
 
 class Zombie {
   constructor(x, y, wave) {
     this.x = x; this.y = y; this.r = 4; this.a = 0; this.t = Math.random() * 9; this.hit = 0; this.cd = 0;
+    this.v = Math.random() * 4 | 0;
     this.hp = 2 + Math.floor(wave / 3);
     this.sp = CFG.ZOMBIE.speed + Math.min(wave * 2, 20) + Math.random() * 6;
   }
@@ -45,9 +46,6 @@ class Zombie {
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) { p.hurt(); this.cd = CFG.ZOMBIE.dmgCd; }
   }
   draw(c, cam) {
-    Sprites.human(c, this.x - cam.x, this.y - cam.y, this.a, {
-      body: this.hit > 0 ? '#ffffff' : '#5b6c8f', skin: '#7fb069', hair: '#3b4a2f', eyes: '#d00', legs: '#2d3550',
-      step: Math.floor(this.t * 6) % 2
-    });
+    Sprites.zombie(c, this.x - cam.x, this.y - cam.y, this.a, { t: this.t, hit: this.hit, v: this.v, step: Math.floor(this.t * 6) % 2 });
   }
 }

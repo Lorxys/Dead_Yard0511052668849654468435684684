@@ -1,54 +1,53 @@
 *{margin:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:#101418;overflow:hidden;overscroll-behavior:none;touch-action:none;font-family:"Courier New",monospace;color:#fff}
+html,body{height:100%;background:#050203;overflow:hidden;overscroll-behavior:none;touch-action:none;font-family:"Press Start 2P","Courier New",monospace;color:#fff}
 #game{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
 #touch{position:fixed;inset:0}
 .stick{position:fixed;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);display:none;pointer-events:none}
 .stick i{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px;border-radius:50%;background:rgba(255,255,255,.45)}
-#hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;justify-content:space-between;padding:10px 14px;font-weight:bold;font-size:16px;text-shadow:2px 2px 0 #000;pointer-events:none}
-#hp{color:#ff4d5a;letter-spacing:2px}
-#banner{position:fixed;top:30%;left:0;right:0;text-align:center;font-size:28px;font-weight:bold;color:#ffd84d;text-shadow:3px 3px 0 #000;opacity:0;transition:opacity .4s;pointer-events:none}
+
+/* ---- HUD ---- */
+#hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:12px;text-shadow:2px 2px 0 #000;pointer-events:none}
+#hp{color:#d01818;font-size:16px;letter-spacing:2px;text-shadow:2px 2px 0 #000,0 0 8px rgba(200,0,0,.6)}
+#wave{color:#c9b48a}
+#score{color:#e9d9c4}
+#banner{position:fixed;top:28%;left:0;right:0;text-align:center;font-size:clamp(16px,4vw,28px);letter-spacing:4px;color:#c41a14;text-shadow:3px 3px 0 #000,0 0 16px rgba(200,0,0,.6);opacity:0;transition:opacity .4s;pointer-events:none}
 #banner.show{opacity:1}
-/* ---- Menu : champ de bataille de nuit, pixel art ---- */
-#menu{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:16px;text-align:center;overflow:hidden;font-family:"Press Start 2P","Courier New",monospace;
-  /* décor : lune de sang, croix, casques, barbelés (SVG en rectangles = pixels nets) */
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90' shape-rendering='crispEdges'%3E%3Cg fill='%237a1010'%3E%3Crect x='121' y='12' width='6' height='1'/%3E%3Crect x='119' y='13' width='10' height='1'/%3E%3Crect x='118' y='14' width='12' height='2'/%3E%3Crect x='117' y='16' width='14' height='6'/%3E%3Crect x='118' y='22' width='12' height='2'/%3E%3Crect x='119' y='24' width='10' height='1'/%3E%3Crect x='121' y='25' width='6' height='1'/%3E%3C/g%3E%3Cg fill='%23520a0a'%3E%3Crect x='120' y='16' width='3' height='2'/%3E%3Crect x='125' y='20' width='2' height='2'/%3E%3Crect x='122' y='22' width='2' height='1'/%3E%3C/g%3E%3Cg fill='%23200707'%3E%3Crect x='138' y='54' width='12' height='18'/%3E%3Crect x='141' y='49' width='4' height='5'/%3E%3Crect x='150' y='60' width='6' height='12'/%3E%3Crect x='2' y='60' width='10' height='12'/%3E%3Crect x='5' y='57' width='3' height='3'/%3E%3C/g%3E%3Cg fill='%230a0404'%3E%3Crect x='0' y='72' width='160' height='18'/%3E%3Crect x='0' y='70' width='22' height='2'/%3E%3Crect x='30' y='69' width='18' height='3'/%3E%3Crect x='60' y='71' width='30' height='1'/%3E%3Crect x='98' y='68' width='26' height='4'/%3E%3Crect x='138' y='70' width='22' height='2'/%3E%3C/g%3E%3Cg fill='%23050202'%3E%3Crect x='20' y='56' width='2' height='14'/%3E%3Crect x='16' y='60' width='10' height='2'/%3E%3Crect x='48' y='60' width='2' height='10'/%3E%3Crect x='45' y='63' width='8' height='2'/%3E%3Crect x='108' y='52' width='2' height='17'/%3E%3Crect x='104' y='57' width='10' height='2'/%3E%3Crect x='105' y='48' width='8' height='1'/%3E%3Crect x='104' y='49' width='10' height='2'/%3E%3Crect x='102' y='51' width='14' height='1'/%3E%3Crect x='75' y='55' width='1' height='17'/%3E%3Crect x='72' y='52' width='7' height='2'/%3E%3Crect x='70' y='54' width='11' height='1'/%3E%3Crect x='62' y='58' width='3' height='13'/%3E%3Crect x='58' y='60' width='4' height='1'/%3E%3Crect x='65' y='62' width='3' height='1'/%3E%3C/g%3E%3Cg fill='%23140808'%3E%3Crect x='6' y='65' width='1' height='9'/%3E%3Crect x='38' y='64' width='1' height='9'/%3E%3Crect x='88' y='65' width='1' height='9'/%3E%3Crect x='130' y='64' width='1' height='9'/%3E%3Crect x='156' y='65' width='1' height='8'/%3E%3Crect x='0' y='67' width='160' height='1'/%3E%3Crect x='0' y='70' width='160' height='1'/%3E%3Crect x='12' y='66' width='1' height='1'/%3E%3Crect x='24' y='68' width='1' height='1'/%3E%3Crect x='31' y='66' width='1' height='1'/%3E%3Crect x='52' y='68' width='1' height='1'/%3E%3Crect x='67' y='66' width='1' height='1'/%3E%3Crect x='80' y='68' width='1' height='1'/%3E%3Crect x='97' y='66' width='1' height='1'/%3E%3Crect x='117' y='68' width='1' height='1'/%3E%3Crect x='143' y='66' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E") center bottom/cover no-repeat,
-    linear-gradient(#030000 0 30%,#0c0101 30% 48%,#170303 48% 62%,#260606 62% 74%,#3a0909 74% 82%,#0a0404 82%)}
+
+/* ---- Coulures de sang (réglées par --l position, --w largeur, --h longueur, --s durée, --d délai) ---- */
+.drip{position:absolute;top:100%;left:var(--l);width:var(--w,5px);height:0;background:linear-gradient(90deg,#a81010,#6a0606);pointer-events:none;
+  animation:drip var(--s,4s) steps(10) var(--d,0s) infinite}
+.drip::after{content:"";position:absolute;left:-2px;right:-2px;bottom:-5px;height:6px;background:#7a0606;box-shadow:inset 2px 2px 0 #b01616}
+@keyframes drip{0%{height:0;opacity:1}55%{height:var(--h,26px);opacity:1}85%{height:var(--h,26px);opacity:1}100%{height:var(--h,26px);opacity:0}}
+
+/* ---- Boutons ensanglantés : éclaboussures, traînées et empreinte de main ---- */
+button{position:relative;font-family:inherit;font-size:clamp(13px,3.2vw,20px);letter-spacing:3px;text-transform:uppercase;padding:20px 44px;color:#f0e2cc;border:none;margin:6px;cursor:pointer;text-shadow:3px 3px 0 #000;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 18' preserveAspectRatio='none' shape-rendering='crispEdges'%3E%3Cg fill='%232c0202' opacity='.6'%3E%3Crect x='5' y='6' width='20' height='1'/%3E%3Crect x='7' y='8' width='24' height='1'/%3E%3Crect x='9' y='10' width='16' height='1'/%3E%3Crect x='12' y='12' width='10' height='1'/%3E%3C/g%3E%3Cg fill='%238e0c0c'%3E%3Crect x='2' y='0' width='9' height='2'/%3E%3Crect x='4' y='2' width='5' height='1'/%3E%3Crect x='12' y='0' width='2' height='1'/%3E%3Crect x='5' y='3' width='2' height='2'/%3E%3Crect x='54' y='0' width='8' height='2'/%3E%3Crect x='56' y='2' width='4' height='2'/%3E%3Crect x='58' y='4' width='2' height='3'/%3E%3Crect x='50' y='1' width='1' height='1'/%3E%3Crect x='26' y='0' width='3' height='1'/%3E%3Crect x='27' y='1' width='1' height='2'/%3E%3Crect x='0' y='15' width='6' height='3'/%3E%3Crect x='30' y='16' width='10' height='2'/%3E%3Crect x='60' y='14' width='4' height='4'/%3E%3C/g%3E%3Cg fill='%235c0505'%3E%3Crect x='44' y='6' width='1' height='5'/%3E%3Crect x='46' y='5' width='1' height='6'/%3E%3Crect x='48' y='5' width='1' height='6'/%3E%3Crect x='50' y='6' width='1' height='5'/%3E%3Crect x='44' y='10' width='7' height='4'/%3E%3Crect x='45' y='14' width='5' height='1'/%3E%3Crect x='51' y='11' width='2' height='1'/%3E%3Crect x='52' y='10' width='1' height='1'/%3E%3C/g%3E%3C/svg%3E") center/100% 100% no-repeat,
+    linear-gradient(#5e0808 0 50%,#4a0606 50% 85%,#330404 85%);
+  box-shadow:0 -4px 0 #120000,0 4px 0 #120000,-4px 0 0 #120000,4px 0 0 #120000,0 12px 0 rgba(0,0,0,.5),inset 0 4px 0 #7a1010}
+button:hover{color:#fff;filter:brightness(1.25);animation:shake .3s steps(2) infinite}
+button:active{transform:translateY(3px)}
+@keyframes shake{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(2px,-1px)}}
+
+/* ---- Menu (le décor animé est dessiné dans le canvas derrière) ---- */
+#menu{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:16px;text-align:center;overflow:hidden;
+  background:radial-gradient(ellipse 55% 42% at center,rgba(0,0,0,.6),transparent 75%)}
 #menu.show{display:flex}
 #menu>*{position:relative;z-index:2}
-/* cendres rougeoyantes qui montent */
-#menu::before{content:"";position:absolute;left:0;top:100%;width:3px;height:3px;z-index:1;pointer-events:none;
-  box-shadow:8vw 0 #ff5a1f,17vw 22vh #b3321a,26vw 9vh #ff8a2a,39vw 31vh #ff5a1f,47vw 4vh #b3321a,58vw 18vh #ff5a1f,66vw 40vh #ff8a2a,74vw 12vh #b3321a,83vw 27vh #ff5a1f,92vw 6vh #ff8a2a,12vw 45vh #b3321a,33vw 55vh #ff5a1f,61vw 62vh #b3321a,88vw 50vh #ff5a1f;
-  animation:ash 14s steps(70) infinite}
-@keyframes ash{to{transform:translateY(-170vh)}}
 /* lignes de balayage + vignette */
 #menu::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
-  background:repeating-linear-gradient(rgba(0,0,0,.28) 0 2px,transparent 2px 4px),radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.85) 100%)}
-#menu .sub{color:#8a7560;font-size:clamp(8px,2.2vw,12px);letter-spacing:3px;text-transform:uppercase;text-shadow:2px 2px 0 #000}
-#menu h1{font-size:clamp(26px,8vw,56px);color:#b01515;letter-spacing:2px;text-transform:uppercase;line-height:1.2;
-  text-shadow:4px 4px 0 #2a0000,8px 8px 0 #000;animation:flicker 5s steps(1) infinite}
+  background:repeating-linear-gradient(rgba(0,0,0,.18) 0 2px,transparent 2px 4px),radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.8) 100%)}
+#menu .sub{color:#a08a6a;font-size:clamp(8px,2.2vw,12px);letter-spacing:4px;text-transform:uppercase;text-shadow:2px 2px 0 #000}
+#menu .tag{color:#7e6a58;font-size:clamp(7px,1.8vw,10px);line-height:2;text-shadow:2px 2px 0 #000}
+/* titre rouge sang en dégradé à paliers, qui grésille et dégouline */
+#menu h1,#over h1{position:relative;text-transform:uppercase;line-height:1.15;color:transparent;
+  background:linear-gradient(#ff4a32 0 18%,#c41a14 18% 55%,#8a0a0a 55% 80%,#5a0404 80%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(3px 3px 0 #1a0000) drop-shadow(4px 4px 0 #000) drop-shadow(0 0 16px rgba(170,0,0,.5))}
+#menu h1{font-size:clamp(28px,8.5vw,64px);letter-spacing:3px;animation:flicker 6s steps(1) infinite}
+#menu h1 .drip,#over h1 .drip{top:80%}
 @keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.35}93%{opacity:1}96%{opacity:.6}97%{opacity:1}}
-#menu .tag{color:#6e5b4b;font-size:clamp(7px,1.8vw,10px);line-height:1.8;text-shadow:2px 2px 0 #000}
-/* bouton ensanglanté */
-#menu button{position:relative;font-family:inherit;font-size:clamp(14px,3.4vw,20px);font-weight:normal;letter-spacing:3px;text-transform:uppercase;
-  padding:18px 36px;color:#e9d9c4;background:#4a0606;border:none;margin:4px;text-shadow:3px 3px 0 #000;
-  /* contour pixel aux coins coupés */
-  box-shadow:0 -4px 0 #140000,0 4px 0 #140000,-4px 0 0 #140000,4px 0 0 #140000,inset 0 -6px 0 #2a0303,inset 0 4px 0 #6e0d0d}
-#menu button:hover{background:#600808;color:#fff;animation:shake .3s steps(2) infinite}
-#menu button:active{transform:translateY(3px)}
-@keyframes shake{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(2px,-1px)}}
-/* éclaboussures de sang sur le bouton (pixels de 4px) */
-#menu button::before{content:"";position:absolute;left:8px;top:-4px;width:4px;height:4px;background:#8c0c0c;
-  box-shadow:4px 0 #8c0c0c,8px 0 #8c0c0c,4px 4px #8c0c0c,12px 4px #6a0808,0 8px #6a0808,20px -4px #8c0c0c,
-    140px 0 #8c0c0c,144px 0 #8c0c0c,148px 4px #6a0808,136px 4px #8c0c0c,152px -4px #8c0c0c,160px 8px #6a0808}
-/* coulures qui dégoulinent sous le bouton */
-#menu .drip{position:absolute;top:100%;width:6px;height:0;background:#7a0606;animation:drip 4s steps(6) infinite}
-#menu .drip::after{content:"";position:absolute;left:-2px;bottom:-4px;width:10px;height:6px;background:#7a0606}
-#menu .d1{left:18%;animation-delay:0s}
-#menu .d2{left:41%;width:4px;animation-delay:1.3s}
-#menu .d3{left:63%;animation-delay:.6s}
-#menu .d4{left:84%;width:4px;animation-delay:2.2s}
-@keyframes drip{0%{height:0;opacity:1}60%{height:24px;opacity:1}85%{height:30px;opacity:1}100%{height:30px;opacity:0}}
-#over{position:fixed;inset:0;background:rgba(10,0,0,.8);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+
+/* ---- Écran de mort ---- */
+#over{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(60,0,0,.78),rgba(5,0,0,.96));display:none;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:16px;text-align:center}
 #over.show{display:flex}
-#over h1{color:#ff4d5a;font-size:30px;text-shadow:3px 3px 0 #000}
-button{font:inherit;font-weight:bold;font-size:18px;padding:12px 28px;background:#b3322a;color:#fff;border:3px solid #fff;cursor:pointer}
+#over h1{font-size:clamp(18px,5.5vw,38px)}
+#over p{color:#c9b48a;font-size:12px;text-shadow:2px 2px 0 #000}

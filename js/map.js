@@ -1,6 +1,8 @@
-// Map fermée : bordure de murs + quelques caisses. 0 = herbe, 1 = mur, 2 = caisse
+// Map fermée : no man's land de nuit.
+// 0 = boue, 1 = sacs de sable (bordure), 2 = caisse de munitions, 3 = hérisson tchèque, 4 = sacs de sable
+const BLOOD = ['#4a0505', '#6a0808', '#850c0c'];
 const GameMap = {
-  grid: [], canvas: null,
+  grid: [], canvas: null, ctx: null,
   init() {
     const { MW, MH } = CFG;
     this.grid = [];
@@ -8,36 +10,84 @@ const GameMap = {
       this.grid[y] = [];
       for (let x = 0; x < MW; x++) this.grid[y][x] = (x === 0 || y === 0 || x === MW - 1 || y === MH - 1) ? 1 : 0;
     }
-    [[6,6],[7,6],[16,6],[16,7],[6,16],[6,17],[16,16],[17,16],[9,9],[14,9],[9,14],[14,14]]
-      .forEach(([x, y]) => this.grid[y][x] = 2);
+    const layout = { 2: [[6,6],[7,6],[16,16],[17,16]], 4: [[16,6],[16,7],[6,16],[6,17]], 3: [[9,9],[14,9],[9,14],[14,14]] };
+    for (const t in layout) layout[t].forEach(([x, y]) => this.grid[y][x] = +t);
     this.render();
   },
+  // redessine le sol (efface aussi le sang et les cadavres de la partie précédente)
   render() {
     const T = CFG.TILE, c = document.createElement('canvas');
     c.width = CFG.MW * T; c.height = CFG.MH * T;
-    const g = c.getContext('2d');
+    const g = c.getContext('2d'); this.canvas = c; this.ctx = g;
     let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    const P = (col, x, y, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+    // boue et terre retournée
+    const MUD = ['#2b241b', '#30281e', '#352c21', '#271f17', '#3b3124'];
+    P('#2f271d', 0, 0, c.width, c.height);
+    for (let i = 0; i < c.width * c.height / 9; i++) P(MUD[rnd() * 5 | 0], rnd() * c.width, rnd() * c.height, rnd() < 0.3 ? 2 : 1, 1);
+    for (let i = 0; i < 90; i++) {                                   // herbe morte
+      const x = rnd() * c.width, y = rnd() * c.height;
+      P('#4f4a2a', x, y, 1, 2); P('#5e5832', x + 1, y - 1, 1, 3); P('#45401f', x + 2, y, 1, 2);
+    }
+    // cratères d'obus (certains remplis d'eau croupie)
+    for (let i = 0; i < 8; i++) {
+      const cx = 24 + rnd() * (c.width - 48), cy = 24 + rnd() * (c.height - 48), r = 6 + rnd() * 10;
+      for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) {
+        const d = Math.hypot(x, y * 1.3) / r;
+        if (d < 1) P(d > 0.8 ? (y < 0 ? '#1f1912' : '#40362a') : d > 0.55 ? '#1d1711' : '#16110c', cx + x, cy + y);
+      }
+      if (r > 11) { P('#141a1e', cx - r * 0.4, cy - 1, r * 0.8, 3); P('#141a1e', cx - r * 0.25, cy - 2, r * 0.5, 5); P('#2c363c', cx - 2, cy - 1, 3, 1); }
+    }
+    // débris : os, casques, douilles, vieilles traces de sang
+    for (let i = 0; i < 45; i++) {
+      const x = rnd() * c.width, y = rnd() * c.height, k = rnd();
+      if (k < 0.2) { P('#c9bf9f', x, y, 4, 1); P('#c9bf9f', x - 1, y - 1, 1, 1); P('#c9bf9f', x + 4, y + 1, 1, 1); }
+      else if (k < 0.32) { P('#30352c', x - 1, y + 2, 6, 1); P('#3c4238', x, y, 4, 2); P('#50584a', x + 1, y, 2, 1); }
+      else if (k < 0.55) P('#8a6c2c', x, y, 2, 1);
+      else for (let j = 0; j < 14; j++) P(rnd() < 0.5 ? '#2e0505' : '#3a0606', x + (rnd() - 0.5) * 10, y + (rnd() - 0.5) * 6, rnd() < 0.4 ? 2 : 1, 1);
+    }
+    // murs et obstacles
     for (let y = 0; y < CFG.MH; y++) for (let x = 0; x < CFG.MW; x++) {
       const t = this.grid[y][x], px = x * T, py = y * T;
-      if (t === 1) {
-        g.fillStyle = '#5a5a6e'; g.fillRect(px, py, T, T);
-        g.fillStyle = '#44445a'; g.fillRect(px, py + 7, T, 1); g.fillRect(px, py + 15, T, 1);
-        g.fillRect(px + (y % 2 ? 4 : 10), py, 1, 7); g.fillRect(px + (y % 2 ? 10 : 4), py + 8, 1, 7);
-        g.fillStyle = '#80809a'; g.fillRect(px, py, T, 1);
-      } else {
-        g.fillStyle = (x + y) % 2 ? '#3d8a4a' : '#3a8247'; g.fillRect(px, py, T, T);
-        g.fillStyle = '#2f6e3b';
-        for (let i = 0; i < 3; i++) g.fillRect(px + (rnd() * 14 | 0), py + (rnd() * 14 | 0), 1, 2);
-        if (rnd() < 0.06) { g.fillStyle = '#f0e46a'; g.fillRect(px + (rnd() * 14 | 0), py + (rnd() * 14 | 0), 2, 2); }
-        if (t === 2) {
-          g.fillStyle = '#8b5a2b'; g.fillRect(px + 1, py + 1, 14, 14);
-          g.fillStyle = '#5e3a17'; g.fillRect(px + 1, py + 1, 14, 1); g.fillRect(px + 1, py + 14, 14, 1);
-          g.fillRect(px + 1, py + 1, 1, 14); g.fillRect(px + 14, py + 1, 1, 14);
-          for (let i = 3; i < 13; i++) { g.fillRect(px + i, py + i, 1, 1); g.fillRect(px + 15 - i, py + i, 1, 1); }
+      if (t === 1 || t === 4) this.sandbags(g, P, px, py, T);
+      else if (t === 2) {
+        P('rgba(0,0,0,.4)', px + 2, py + 3, 14, 13);
+        P('#4c5430', px + 1, py + 1, 14, 13); P('#5f6a3c', px + 1, py + 1, 14, 1);
+        P('#3c4325', px + 1, py + 5, 14, 1); P('#3c4325', px + 1, py + 9, 14, 1); P('#323820', px + 1, py + 13, 14, 1);
+        [[1, 1], [13, 1], [1, 12], [13, 12]].forEach(([a, b]) => P('#26262a', px + a, py + b, 2, 2));
+        P('#bdb690', px + 4, py + 6, 8, 1); P('#bdb690', px + 4, py + 8, 5, 1);    // marquage au pochoir
+        P('#7a6a48', px, py + 6, 1, 3); P('#7a6a48', px + 15, py + 6, 1, 3);       // poignées en corde
+      } else if (t === 3) {
+        for (let i = 0; i < 13; i++) {
+          P('rgba(0,0,0,.4)', px + 2 + i, py + 4 + i, 2, 1); P('rgba(0,0,0,.4)', px + 15 - i, py + 4 + i, 2, 1);
+          P('#3a3a3e', px + 1 + i, py + 1 + i, 2, 2); P('#3a3a3e', px + 13 - i, py + 1 + i, 2, 2);
+          P('#66666c', px + 1 + i, py + 1 + i, 1, 1); P('#66666c', px + 14 - i, py + 1 + i, 1, 1);
         }
+        P('#2c2c30', px + 7, py + 2, 2, 12); P('#55555a', px + 7, py + 2, 1, 12);
+        for (let i = 0; i < 6; i++) P('#6e3a1c', px + 2 + rnd() * 12, py + 2 + rnd() * 12);   // rouille
       }
     }
-    this.canvas = c;
+  },
+  sandbags(g, P, px, py, T) {
+    g.save(); g.beginPath(); g.rect(px, py, T, T); g.clip();
+    P('#241d14', px, py, T, T);
+    for (let r = 0; r < 3; r++) for (let b = r % 2 ? -4 : 0; b < T; b += 8) {
+      const bx = px + b, by = py + r * 5;
+      P('#7a6a48', bx + 1, by, 6, 5); P('#7a6a48', bx, by + 1, 8, 3);
+      P('#93835c', bx + 1, by, 6, 1); P('#58492f', bx + 1, by + 4, 6, 1); P('#5e4f33', bx + 7, by + 1, 1, 3);
+      P('#4a3e28', bx + 3, by + 2, 1, 1); P('#4a3e28', bx + 5, by + 2, 1, 1);
+    }
+    g.restore();
+  },
+  // tache de sang (ou douille) qui retombe au sol et y reste
+  stain(x, y, col, s = 1) { this.ctx.fillStyle = col; this.ctx.fillRect(Math.round(x), Math.round(y), s, s); },
+  splat(x, y, r) {
+    const g = this.ctx;
+    for (let i = 0; i < r * 7; i++) {
+      const a = Math.random() * 6.28, d = Math.random() * r;
+      g.fillStyle = BLOOD[Math.random() * 3 | 0];
+      g.fillRect(Math.round(x + Math.cos(a) * d), Math.round(y + Math.sin(a) * d * 0.7), 1 + (Math.random() * 2 | 0), 1 + (Math.random() * 2 | 0));
+    }
   },
   solid(tx, ty) { return tx < 0 || ty < 0 || tx >= CFG.MW || ty >= CFG.MH || this.grid[ty][tx] > 0; },
   solidAt(x, y) { return this.solid(Math.floor(x / CFG.TILE), Math.floor(y / CFG.TILE)); },
