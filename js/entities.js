@@ -46,7 +46,7 @@ class Player {
         world.bullets.push({ id: nextId++, owner: this.id, up: this.upgraded, dmg: g.dmg * k, far: (g.far ?? g.dmg) * k, fall: g.fall, d: 0,
           x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: g.range });
       }
-      world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a });
+      world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a, w: this.weapon });
     }
     this.gcd -= dt;
     if (intent.grenade && this.grenades > 0 && this.gcd <= 0) {

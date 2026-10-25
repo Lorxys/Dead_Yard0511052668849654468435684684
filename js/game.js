@@ -28,6 +28,7 @@ const Game = {
     this.perkBox = document.getElementById('perks'); this.shownPerks = '';
     this.resize(); addEventListener('resize', () => this.resize());
     GameMap.init(); Input.init(document.getElementById('touch'));
+    Sound.attach(); Sound.menu(true);   // la musique du menu démarre au premier appui (règle des navigateurs)
     document.getElementById('restart').onclick = () => this.reset();
     document.getElementById('toMenu').onclick = () => this.toMenu();
     // menu : le jeu ne démarre qu'au clic sur Jouer
@@ -68,6 +69,7 @@ const Game = {
   },
   reset() {
     this.state = 'play'; this.resize(); GameMap.render(); GameMap.flowKey = null;
+    Sound.menu(false); Sound.setNear(null);   // en jeu : pas de musique, seulement les bruitages
     // plus tard : un Player par joueur connecté, chacun sur son point d'apparition
     const s = GameMap.playerSpawn(0);
     this.players = [new Player(this.localId, s.x, s.y)];
@@ -80,6 +82,7 @@ const Game = {
   },
   toMenu() {
     this.state = 'menu'; this.players = []; this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = [];
+    Sound.menu(true); Sound.setNear(null);
     for (const k in this.hud) this.hud[k].textContent = '';
     document.body.classList.remove('playing');
     document.getElementById('over').classList.remove('show');
@@ -270,9 +273,16 @@ const Game = {
         col: col || BLOOD[Math.random() * 3 | 0], s: Math.random() < 0.3 ? 2 : 1, stain });
     }
   },
+  // volume et position gauche/droite d'un son selon sa distance au joueur local
+  heard(x, y, range = 400) {
+    const p = this.me; if (!p) return { vol: 1 };
+    const d = Math.hypot(x - p.x, y - p.y);
+    return { vol: Math.max(0, 1 - d / range), pan: (x - p.x) / 200 };
+  },
   onEvent(e) {
     switch (e.type) {
-      case 'shoot': {   // douille éjectée sur le côté, elle reste au sol
+      case 'shoot': {   // coup de feu + douille éjectée sur le côté, elle reste au sol
+        Sound.shot(e.w, this.heard(e.x, e.y));
         const a = e.a + Math.PI / 2 + (Math.random() - 0.5);
         this.fx.push({ x: e.x, y: e.y - 3, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.25, col: '#c09a40', s: 1, stain: true });
         break;
@@ -282,9 +292,10 @@ const Game = {
       case 'kill':
         this.blood(e.x, e.y - 4, 30); this.blood(e.x, e.y - 4, 5, '#3a0404');
         GameMap.splat(e.x, e.y + 3, 10); Sprites.corpse(GameMap.messCtx, e.x, e.y + 3, e.v);
+        Sound.splat(this.heard(e.x, e.y));
         break;
       case 'hurt':      // le joueur saigne ; l'écran ne tremble que pour celui qui est touché
-        if (e.id === this.localId) this.shake = 0.3;
+        if (e.id === this.localId) { this.shake = 0.3; Sound.bite(); }
         this.blood(e.x, e.y - 5, 16); GameMap.splat(e.x, e.y + 3, 4);
         break;
       case 'wave': {   // nouvelle manche : cadavres, sang et douilles s'estompent petit à petit
@@ -307,6 +318,7 @@ const Game = {
         GameMap.scorch(e.x, e.y, Math.round(CFG.GRENADE.radius * 0.45));
         this.lights.push({ x: e.x, y: e.y, t: 0.4 });
         const me = this.me; if (me && Math.hypot(me.x - e.x, me.y - e.y) < 160) this.shake = 0.45;
+        Sound.explosion(this.heard(e.x, e.y, 600));
         break;
       }
       case 'perk': {   // atout acheté : bannière à la couleur de la machine + gerbe d'étincelles
@@ -315,24 +327,31 @@ const Game = {
           b.textContent = def.name.toUpperCase(); b.style.color = def.color; b.classList.add('show');
           setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 1800);
         }
+        if (e.id === this.localId) e.perk === 'upgrade' ? Sound.upgrade() : Sound.perkBuy();
         this.blood(e.x, e.y - 6, 30, def.color, false);
         this.lights.push({ x: e.x, y: e.y, t: 0.4 });
         break;
       }
-      case 'boxopen': { const b = GameMap.box; this.lights.push({ x: (b.tx + 1) * CFG.TILE, y: b.ty * CFG.TILE, t: 0.4 }); break; }
+      case 'boxopen': {   // couvercle qui s'ouvre et boîte à musique pendant tout le tirage
+        const b = GameMap.box, x = (b.tx + 1) * CFG.TILE, y = b.ty * CFG.TILE;
+        this.lights.push({ x, y, t: 0.4 }); Sound.boxRoll(CFG.BOX.roll, this.heard(x, y, 500));
+        break;
+      }
+      case 'boxclose': { const b = GameMap.box; Sound.boxClose(this.heard((b.tx + 1) * CFG.TILE, b.ty * CFG.TILE)); break; }
       case 'pickup': {   // nouvelle arme en main : bannière avec son nom
         if (e.id === this.localId) {
           const b = document.getElementById('banner'); b.textContent = CFG.WEAPONS[e.weapon].name.toUpperCase(); b.style.color = CFG.BOX.color; b.classList.add('show');
           setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 1800);
         }
+        if (e.id === this.localId) Sound.pickup();
         this.blood(e.x, e.y - 6, 20, CFG.BOX.color, false);
         break;
       }
       case 'buyfail':
-        if (e.id === this.localId) { this.buy.box.classList.remove('nope'); void this.buy.box.offsetWidth; this.buy.box.classList.add('nope'); }
+        if (e.id === this.localId) { this.buy.box.classList.remove('nope'); void this.buy.box.offsetWidth; this.buy.box.classList.add('nope'); Sound.denied(); }
         break;
       case 'gameover':
-        document.body.classList.remove('playing');
+        document.body.classList.remove('playing'); Sound.setNear(null);
         document.getElementById('final').textContent = `Vague ${e.wave} · Score ${e.score}`;
         document.getElementById('over').classList.add('show');
         break;
@@ -348,6 +367,7 @@ const Game = {
     this.shake -= dt; GameMap.updateFade(dt);
     this.lights = this.lights.filter(l => (l.t -= dt) > 0);
     const p = this.me; if (!p) return;
+    this.updateSounds(p, dt);
     this.hud.nades.textContent = '×' + p.grenades;
     this.gCount.textContent = p.grenades; this.gStick.classList.toggle('empty', !p.grenades);
     // caméra sur le joueur local (centrée si la map est plus petite que l'écran) + secousse
@@ -390,6 +410,20 @@ const Game = {
         this.perkBox.appendChild(cv);
       });
     }
+  },
+  // sons continus : pas du joueur, gémissements des zombies proches, jingle de la machine devant laquelle on se tient
+  updateSounds(p, dt) {
+    const st = Math.floor(p.walk / 2);   // un pas toutes les 2 unités de marche
+    if (st !== this.lastStep) { this.lastStep = st; if (p.alive && this.state === 'play') Sound.step(); }
+    for (const z of this.zs) {
+      z.moanT = (z.moanT ?? 1 + Math.random() * 5) - dt;
+      if (z.moanT > 0) continue;
+      z.moanT = 3 + Math.random() * 6;
+      const d = Math.hypot(z.x - p.x, z.y - p.y);
+      if (d < 260 && Sound.moanFree()) Sound.moan({ vol: Math.pow(1 - d / 260, 1.5), pan: (z.x - p.x) / 200 });
+    }
+    const m = this.state === 'play' && p.alive && GameMap.nearMachine(p);
+    Sound.setNear(m && m.perk !== 'box' ? m.perk : null);
   },
   // état affiché de la boîte mystère : pendant le tirage, les armes défilent de plus en plus lentement
   // puis s'arrêtent sur l'arme tirée ; elle clignote les 3 dernières secondes avant de redescendre dans la boîte

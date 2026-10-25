@@ -6,6 +6,7 @@ Zombie shooter pixel art vu du dessus, jouable sur mobile (Android/iOS) et PC.
 - css/style.css : mise en page, HUD, joysticks
 - js/config.js : réglages (taille de la map, vitesses, vies)
 - js/input.js : joysticks tactiles + clavier/souris
+- js/audio.js : sons et musiques générés par code (Web Audio)
 - js/sprites.js : pixel art dessiné par code
 - js/map.js : map fermée, tuiles, collisions
 - js/entities.js : joueurs et zombies
@@ -62,3 +63,12 @@ sur « Prendre » pour l'avoir en main (une seule arme à la fois). Sans répons
 - StG 44 (fusil d'assaut) : rapide, bons dégâts à toute distance
 - Trench Gun (fusil à pompe) : 7 plombs qui s'éparpillent, énormes dégâts de près, portée courte
 - Kar98k (sniper) : très gros dégâts à toute distance, tir lent
+
+## Son
+Tout est synthétisé par code (aucun fichier audio). Le son démarre au premier appui sur l'écran ou une touche
+(règle des navigateurs).
+- Menu : nappe sombre en la mineur, boîte à musique lointaine, et au loin des rafales, explosions et gémissements ;
+  un coup de tonnerre à chaque bouton.
+- En jeu : pas de musique, seulement les tirs (un son par arme), les pas, les zombies, les explosions.
+- Machines : chaque machine à atout et la machine d'amélioration jouent leur jingle à la radio quand on est devant ;
+  fanfare à l'achat d'un atout, marteau et enclume pour l'amélioration ; boîte à musique pendant le tirage de la boîte mystère.
