@@ -89,14 +89,21 @@ const GameMap = {
       g.fillRect(Math.round(x + Math.cos(a) * d), Math.round(y + Math.sin(a) * d * 0.7), 1 + (Math.random() * 2 | 0), 1 + (Math.random() * 2 | 0));
     }
   },
-  // champ de distances (BFS) depuis la case du joueur : chaque case connaît son nombre de pas jusqu'à lui
-  computeFlow(x, y) {
-    const { MW, MH, TILE } = CFG, sx = Math.floor(x / TILE), sy = Math.floor(y / TILE);
-    if (this.flowFrom === sx + sy * MW) return;
-    this.flowFrom = sx + sy * MW;
+  // points d'apparition des joueurs (un par joueur, autour du centre)
+  playerSpawn(i) {
+    const c = CFG.MW * CFG.TILE / 2, o = [[0, 0], [-16, 0], [16, 0], [0, -16]][i % 4];
+    return { x: c + o[0], y: c + o[1] };
+  },
+  // champ de distances (BFS) depuis les cases de tous les joueurs vivants :
+  // chaque case connaît son nombre de pas jusqu'au joueur le plus proche
+  computeFlow(players) {
+    const { MW, MH, TILE } = CFG, src = players.map(p => Math.floor(p.x / TILE) + Math.floor(p.y / TILE) * MW);
+    const key = src.join(',');
+    if (this.flowKey === key) return;   // recalculé seulement quand un joueur change de case
+    this.flowKey = key;
     this.dist = new Array(MW * MH).fill(Infinity);
-    this.dist[this.flowFrom] = 0;
-    const q = [this.flowFrom];
+    const q = [];
+    for (const k of src) if (this.dist[k] !== 0) { this.dist[k] = 0; q.push(k); }
     for (let i = 0; i < q.length; i++) {
       const cx = q[i] % MW, cy = q[i] / MW | 0;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {

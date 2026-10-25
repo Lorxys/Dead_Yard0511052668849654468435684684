@@ -62,3 +62,4 @@ button:active{transform:translateY(3px)}
 #over.show{display:flex}
 #over h1{font-size:clamp(18px,5.5vw,38px)}
 #over p{color:#c9b48a;font-size:12px;text-shadow:2px 2px 0 #000}
+#over .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
