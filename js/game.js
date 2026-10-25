@@ -281,13 +281,14 @@ const Game = {
       case 'hit': this.blood(e.x, e.y, 10); GameMap.splat(e.zx, e.zy + 3, 3); break;
       case 'kill':
         this.blood(e.x, e.y - 4, 30); this.blood(e.x, e.y - 4, 5, '#3a0404');
-        GameMap.splat(e.x, e.y + 3, 10); Sprites.corpse(GameMap.ctx, e.x, e.y + 3, e.v);
+        GameMap.splat(e.x, e.y + 3, 10); Sprites.corpse(GameMap.messCtx, e.x, e.y + 3, e.v);
         break;
       case 'hurt':      // le joueur saigne ; l'écran ne tremble que pour celui qui est touché
         if (e.id === this.localId) this.shake = 0.3;
         this.blood(e.x, e.y - 5, 16); GameMap.splat(e.x, e.y + 3, 4);
         break;
-      case 'wave': {
+      case 'wave': {   // nouvelle manche : cadavres, sang et douilles disparaissent
+        GameMap.clearMess();
         const b = document.getElementById('banner'); b.textContent = 'VAGUE ' + e.n; b.classList.add('show');
         setTimeout(() => b.classList.remove('show'), 1800);
         break;

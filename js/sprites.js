@@ -224,7 +224,7 @@ const Sprites = {
     return '120,200,255';
   },
 
-  // cadavre allongé, peint une fois pour toutes sur le sol de la map
+  // cadavre allongé, peint sur le calque du sol effacé à chaque nouvelle manche
   corpse(g, x, y, v) {
     x = Math.round(x); y = Math.round(y);
     const d = v & 1 ? -1 : 1, M = (col, rx, ry, w, h) => { g.fillStyle = col; g.fillRect(x + (d > 0 ? rx : -rx - w), y + ry, w, h); };

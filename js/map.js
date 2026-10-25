@@ -35,6 +35,9 @@ const GameMap = {
     const T = CFG.TILE, c = document.createElement('canvas');
     c.width = CFG.MW * T; c.height = CFG.MH * T;
     const g = c.getContext('2d'); this.canvas = c; this.ctx = g;
+    // calque séparé pour les cadavres, le sang et les douilles de la partie : effacé à chaque nouvelle manche
+    this.mess = document.createElement('canvas'); this.mess.width = c.width; this.mess.height = c.height;
+    this.messCtx = this.mess.getContext('2d');
     let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
     const P = (col, x, y, w = 1, h = 1) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
     // boue et terre retournée
@@ -96,9 +99,9 @@ const GameMap = {
     g.restore();
   },
   // tache de sang (ou douille) qui retombe au sol et y reste
-  stain(x, y, col, s = 1) { this.ctx.fillStyle = col; this.ctx.fillRect(Math.round(x), Math.round(y), s, s); },
+  stain(x, y, col, s = 1) { this.messCtx.fillStyle = col; this.messCtx.fillRect(Math.round(x), Math.round(y), s, s); },
   splat(x, y, r) {
-    const g = this.ctx;
+    const g = this.messCtx;
     for (let i = 0; i < r * 7; i++) {
       const a = Math.random() * 6.28, d = Math.random() * r;
       g.fillStyle = BLOOD[Math.random() * 3 | 0];
@@ -159,5 +162,6 @@ const GameMap = {
   solid(tx, ty) { return tx < 0 || ty < 0 || tx >= CFG.MW || ty >= CFG.MH || this.grid[ty][tx] > 0; },
   solidAt(x, y) { return this.solid(Math.floor(x / CFG.TILE), Math.floor(y / CFG.TILE)); },
   blocked(x, y, r) { return this.solidAt(x - r, y - r) || this.solidAt(x + r, y - r) || this.solidAt(x - r, y + r) || this.solidAt(x + r, y + r); },
-  draw(c, cam) { c.drawImage(this.canvas, -cam.x, -cam.y); }
+  clearMess() { this.messCtx.clearRect(0, 0, this.mess.width, this.mess.height); },
+  draw(c, cam) { c.drawImage(this.canvas, -cam.x, -cam.y); c.drawImage(this.mess, -cam.x, -cam.y); }
 };
