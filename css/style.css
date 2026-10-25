@@ -4,9 +4,22 @@ html,body{height:100%;background:#050203;overflow:hidden;overscroll-behavior:non
 #touch{position:fixed;inset:0}
 .stick{position:fixed;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);display:none;pointer-events:none}
 .stick i{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px;border-radius:50%;background:rgba(255,255,255,.45)}
+/* icône grenade Mk2 en pixels, partagée par le joystick et le HUD */
+:root{--nade:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14' shape-rendering='crispEdges'%3E%3Cg fill='%239a9a90'%3E%3Crect x='5' y='0' width='4' height='1'/%3E%3Crect x='8' y='1' width='2' height='1'/%3E%3Crect x='9' y='2' width='1' height='2'/%3E%3Crect x='10' y='4' width='1' height='6'/%3E%3C/g%3E%3Crect x='2' y='1' width='3' height='1' fill='%23c8c8c0'/%3E%3Crect x='2' y='2' width='1' height='2' fill='%23c8c8c0'/%3E%3Crect x='4' y='2' width='4' height='2' fill='%236a6a60'/%3E%3Cg fill='%234b5a2a'%3E%3Crect x='3' y='4' width='6' height='1'/%3E%3Crect x='2' y='5' width='8' height='7'/%3E%3Crect x='3' y='12' width='6' height='1'/%3E%3C/g%3E%3Cg fill='%232f3a1a'%3E%3Crect x='2' y='7' width='8' height='1'/%3E%3Crect x='2' y='10' width='8' height='1'/%3E%3Crect x='5' y='5' width='1' height='7'/%3E%3C/g%3E%3Crect x='3' y='5' width='1' height='4' fill='%237a8a46'/%3E%3C/svg%3E")}
+/* joystick grenade : fixe, au-dessus de la zone de tir, visible seulement en partie sur écran tactile */
+#sG{position:fixed;right:calc(env(safe-area-inset-right,0px) + 34px);bottom:50%;width:80px;height:80px;border-radius:50%;display:none;touch-action:none;
+  border:2px solid rgba(255,90,60,.6);background:rgba(110,10,10,.28)}
+@media (pointer:coarse){body.playing #sG{display:block}}
+#sG.on{background:rgba(160,20,20,.45)}
+#sG.empty{opacity:.35}
+#sG i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;border:2px solid rgba(255,255,255,.4);
+  background:rgba(20,8,8,.8) var(--nade) center/24px 28px no-repeat;image-rendering:pixelated;pointer-events:none}
+#sG b{position:absolute;right:-6px;top:-6px;min-width:22px;padding:4px 5px;font-size:9px;font-weight:normal;text-align:center;color:#fff;background:#8a0c0c;box-shadow:0 0 0 2px #120000;pointer-events:none}
 
 /* ---- HUD ---- */
 #hud{position:fixed;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-size:12px;text-shadow:2px 2px 0 #000;pointer-events:none}
+#hud .left{display:flex;align-items:center;gap:16px}
+#nades{color:#c9b48a;padding-left:20px;line-height:18px;background:var(--nade) left center/14px 16px no-repeat;image-rendering:pixelated}
 #hp{color:#d01818;font-size:16px;letter-spacing:2px;text-shadow:2px 2px 0 #000,0 0 8px rgba(200,0,0,.6)}
 #wave{color:#c9b48a}
 #score{color:#e9d9c4}

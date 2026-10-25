@@ -95,6 +95,20 @@ const Sprites = {
     F('#ffd23a', -2 + ox, -9, 1, 1); F('#ffd23a', 1 + ox, -9, 1, 1);
   },
 
+  // grenade Mk2 « ananas » : ombre au sol, corps décalé de sa hauteur z pendant le vol
+  grenade(c, x, y, z) {
+    x = Math.round(x); y = Math.round(y);
+    const F = rectFn(c, x, y), h = Math.round(z);
+    F('rgba(0,0,0,.45)', -2, 0, 4, 1);
+    F('#4b5a2a', -2, -3 - h, 4, 4); F('#2f3a1a', -2, -1 - h, 4, 1); F('#2f3a1a', 0, -3 - h, 1, 4);
+    F('#7a8a46', -2, -3 - h, 1, 2); F('#9a9a90', -1, -4 - h, 2, 1); F('#9a9a90', 1, -4 - h, 1, 3);
+  },
+  // mèche qui clignote (redessinée par-dessus l'obscurité)
+  grenadeFuse(c, x, y, z, t) {
+    if (Math.floor(t * (t > 0.9 ? 16 : 8)) % 2) return;
+    c.fillStyle = '#ff3020'; c.fillRect(Math.round(x), Math.round(y) - 5 - Math.round(z), 1, 1);
+  },
+
   // cadavre allongé, peint une fois pour toutes sur le sol de la map
   corpse(g, x, y, v) {
     x = Math.round(x); y = Math.round(y);

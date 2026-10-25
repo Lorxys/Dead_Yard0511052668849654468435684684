@@ -1,6 +1,6 @@
 // Joueurs et zombies
 let nextId = 1;   // identifiant unique de chaque zombie/balle (pour les synchroniser en réseau plus tard)
-const NO_INTENT = { move: { x: 0, y: 0 }, aim: null, fire: false };
+const NO_INTENT = { move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null };
 
 function moveEntity(e, dx, dy) {
   if (!GameMap.blocked(e.x + dx, e.y, e.r)) e.x += dx;
@@ -9,10 +9,12 @@ function moveEntity(e, dx, dy) {
 
 class Player {
   constructor(id, x, y) {
-    this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0;
+    this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
+    this.grenades = CFG.GRENADE.start; this.gcd = 0;
     this.hp = CFG.PLAYER.hp; this.a = Math.PI / 2; this.cd = 0; this.inv = 0; this.flash = 0; this.walk = 0;
   }
-  // intent = { move: {x,y}, aim: {x,y} | null, fire } : vient du clavier/tactile en local, du réseau plus tard
+  // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur) }
+  // vient du clavier/tactile en local, du réseau plus tard
   update(dt, intent, world) {
     if (!this.alive) return;
     let mv = intent.move, m = Math.hypot(mv.x, mv.y);
@@ -27,6 +29,11 @@ class Player {
       const a = this.a + (Math.random() - 0.5) * 0.08, v = CFG.PLAYER.bulletSpeed;
       world.bullets.push({ id: nextId++, owner: this.id, x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: CFG.PLAYER.range });
       world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a });
+    }
+    this.gcd -= dt;
+    if (intent.grenade && this.grenades > 0 && this.gcd <= 0) {
+      this.grenades--; this.gcd = CFG.GRENADE.cooldown;
+      world.throwGrenade(this, intent.grenade);
     }
   }
   // renvoie true si le coup a porté (pas pendant l'invincibilité)

@@ -131,6 +131,15 @@ const GameMap = {
     for (let i = 1; i <= n; i++) if (this.blocked(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, r)) return false;
     return true;
   },
+  // trace de brûlure laissée par une explosion
+  scorch(x, y, r) {
+    const g = this.ctx, C = ['#0e0b09', '#16110d', '#1e1712', '#2a2018'];
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const d = Math.hypot(dx, dy * 1.3) / r;
+      if (d < 1 && Math.random() < 1.05 - d) { g.fillStyle = C[Math.min(3, (d * 3 + Math.random()) | 0)]; g.fillRect(Math.round(x + dx), Math.round(y + dy), 1, 1); }
+    }
+    for (let i = 0; i < r; i++) { g.fillStyle = Math.random() < 0.5 ? '#6a2a10' : '#3a1a0c'; g.fillRect(Math.round(x + (Math.random() - 0.5) * r), Math.round(y + (Math.random() - 0.5) * r * 0.7), 1, 1); }
+  },
   solid(tx, ty) { return tx < 0 || ty < 0 || tx >= CFG.MW || ty >= CFG.MH || this.grid[ty][tx] > 0; },
   solidAt(x, y) { return this.solid(Math.floor(x / CFG.TILE), Math.floor(y / CFG.TILE)); },
   blocked(x, y, r) { return this.solidAt(x - r, y - r) || this.solidAt(x + r, y - r) || this.solidAt(x - r, y + r) || this.solidAt(x + r, y + r); },
