@@ -37,7 +37,8 @@ class Zombie {
     this.x = x; this.y = y; this.r = 4; this.a = 0; this.t = Math.random() * 9; this.hit = 0; this.cd = 0;
     this.v = Math.random() * 4 | 0; this.stuck = 0; this.detour = 0;
     this.hp = 2 + Math.floor(wave / 3);
-    this.sp = CFG.ZOMBIE.speed + Math.min(wave * 2, 20) + Math.random() * 6;
+    const Z = CFG.ZOMBIE;
+    this.sp = Z.speed + Math.min(wave * Z.speedPerWave, Z.speedMaxBonus) + Math.random() * 6;
   }
   update(dt, p) {
     // fonce droit sur le joueur s'il le voit, sinon contourne les obstacles en suivant le champ de distances
