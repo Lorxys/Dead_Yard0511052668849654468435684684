@@ -20,7 +20,6 @@ const Game = {
     // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
-    bar.style.setProperty('--seg', CFG.ZOMBIE.dmg / CFG.PLAYER.hp * 100 + '%');
     this.gStick = document.getElementById('sG'); this.gCount = document.getElementById('nadeCount');
     // panneau d'achat devant une machine à atout + icônes des atouts possédés
     this.buy = { box: document.getElementById('buy'), name: document.getElementById('buyName'), btn: document.getElementById('buyBtn'), label: document.getElementById('buyLabel'), info: document.getElementById('buyInfo'), price: document.getElementById('buyPrice') };
@@ -257,6 +256,12 @@ const Game = {
       const a = this.zs[i], b = this.zs[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
       if (d < 9) { const f = (9 - d) / 2; moveEntity(a, -dx / d * f, -dy / d * f); moveEntity(b, dx / d * f, dy / d * f); }
     }
+    // collision joueur / zombie : on ne traverse plus les zombies, une horde peut bloquer le passage.
+    // Le joueur est repoussé plus que le zombie, qui reste assez près pour frapper (portée de coup : 10 px)
+    for (const p of alive) for (const z of this.zs) {
+      const dx = p.x - z.x, dy = p.y - z.y, d = Math.hypot(dx, dy) || 1;
+      if (d < 9) { const f = 9 - d; moveEntity(p, dx / d * f * 0.7, dy / d * f * 0.7); moveEntity(z, -dx / d * f * 0.3, -dy / d * f * 0.3); }
+    }
     // balles
     this.bullets = this.bullets.filter(b => {
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.d += Math.hypot(b.vx, b.vy) * dt;
@@ -442,7 +447,7 @@ const Game = {
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
     this.hud.weapon.textContent = p.gun.name;
-    this.hpBar.style.setProperty('--seg', CFG.ZOMBIE.dmg / p.maxHp * 100 + '%');
+    this.hpBar.style.setProperty('--seg', zombieDamage(this.wave) / p.maxHp * 100 + '%');   // un cran = un coup de zombie de cette manche
     // bouton posé sur la machine devant laquelle se tient le joueur, prix en dessous
     const m = p.alive && GameMap.nearMachine(p), B = this.buy, o = m && this.offer(p, m);
     B.box.classList.toggle('show', !!o);

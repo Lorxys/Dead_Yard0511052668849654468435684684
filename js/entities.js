@@ -1,6 +1,8 @@
 // Joueurs et zombies
 let nextId = 1;   // identifiant unique de chaque zombie/balle (pour les synchroniser en réseau plus tard)
-const NO_INTENT = { move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null, buy: false };
+// dégâts d'un coup de zombie à une manche donnée (paliers de CFG.ZOMBIE.dmg)
+const zombieDamage = wave => CFG.ZOMBIE.dmg.reduce((d, [from, v]) => wave >= from ? v : d, 0);
+const NO_INTENT ={ move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null, buy: false };
 
 function moveEntity(e, dx, dy) {
   if (!GameMap.blocked(e.x + dx, e.y, e.r)) e.x += dx;
@@ -74,6 +76,7 @@ class Zombie {
     this.v = Math.random() * 4 | 0; this.stuck = 0; this.detour = 0;
     this.hp = 2 + Math.floor(wave / 3);
     const Z = CFG.ZOMBIE;
+    this.dmg = zombieDamage(wave);
     this.sp = Z.speed + Math.min(wave * Z.speedPerWave, Z.speedMaxBonus) + Math.random() * 6;
   }
   update(dt, world) {
@@ -96,7 +99,7 @@ class Zombie {
     if (this.stuck > 0.4 && pd > 14) { this.detour = 1.5; this.stuck = 0; }
     this.t += dt; this.hit -= dt; this.cd -= dt;
     if (Math.hypot(p.x - this.x, p.y - this.y) < this.r + p.r + 2 && this.cd <= 0) {
-      if (p.hurt(CFG.ZOMBIE.dmg)) world.emit('hurt', { id: p.id, x: p.x, y: p.y });
+      if (p.hurt(this.dmg)) world.emit('hurt', { id: p.id, x: p.x, y: p.y });
       this.cd = CFG.ZOMBIE.dmgCd;   // ce zombie ne peut plus frapper pendant 1 s
     }
   }

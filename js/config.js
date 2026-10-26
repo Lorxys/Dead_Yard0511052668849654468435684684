@@ -37,5 +37,7 @@ const CFG = {
   // portes achetables (barricades entre les zones) : prix, et durée en s pendant laquelle elles s'effondrent avant de laisser passer
   DOOR: { name: 'Barricade', color: '#c9b48a', price: 1000, fade: 2.5 },
   // pas d'invincibilité : chaque zombie qui frappe doit attendre dmgCd s avant de refrapper, les autres peuvent toujours toucher
-  ZOMBIE: { speed: 16, speedPerWave: 1.5, speedMaxBonus: 15, dmg: 30, dmgCd: 1 }   // vitesse = speed + bonus par vague (plafonné) + petit aléa
+  // vitesse = speed + bonus par vague (plafonné) + petit aléa
+  // dégâts par coup selon la manche : [à partir de la manche, dégâts] -> 30, puis 50 dès la manche 11, puis 75 dès la manche 50
+  ZOMBIE: { speed: 16, speedPerWave: 1.5, speedMaxBonus: 15, dmg: [[1, 30], [11, 50], [50, 75]], dmgCd: 1 }
 };
