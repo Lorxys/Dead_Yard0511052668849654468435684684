@@ -474,17 +474,17 @@ const Game = {
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
     // arme en main (en bas à droite) : nom, logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
     const H = this.hud;
-    // dessiné directement en x8 sur le canvas (ombre noire, halo violet si améliorée), sans mise à l'échelle CSS
+    // dessiné directement en x12 sur le canvas (ombre noire, halo violet si améliorée), sans mise à l'échelle CSS
     const iconKey = p.weapon + p.upgraded;
     if (H.iconOf !== iconKey) {
-      const g = H.icon.getContext('2d'), S = 8; g.clearRect(0, 0, 160, 64); H.iconOf = iconKey;
+      const g = H.icon.getContext('2d'), S = 12; g.clearRect(0, 0, 240, 96); H.iconOf = iconKey;
       const draw = (dx, dy, tint) => Sprites.gun((col, x, y, w, h) => { g.fillStyle = tint || col; g.fillRect((1 + x) * S + dx, (4 + y) * S + dy, w * S, h * S); }, 0, null, false, p.weapon, 0);
       const ring = d => [[-d, 0], [d, 0], [0, -d], [0, d], [-d, -d], [d, -d], [-d, d], [d, d]];
-      if (p.upgraded) ring(6).forEach(([dx, dy]) => draw(dx, dy, '#b060ff'));
-      ring(3).forEach(([dx, dy]) => draw(dx, dy, '#000'));   // contour noir
-      draw(5, 5, 'rgba(0,0,0,.6)'); draw(0, 0);
+      if (p.upgraded) ring(9).forEach(([dx, dy]) => draw(dx, dy, '#b060ff'));
+      ring(4).forEach(([dx, dy]) => draw(dx, dy, '#000'));   // contour noir
+      draw(7, 7, 'rgba(0,0,0,.6)'); draw(0, 0);
       // reflet clair sur le dessus pour que l'arme se détache du fond sombre
-      Sprites.gun((col, x, y, w) => { g.fillStyle = 'rgba(255,240,210,.25)'; g.fillRect((1 + x) * S, (4 + y) * S, w * S, 2); }, 0, null, false, p.weapon, 0);
+      Sprites.gun((col, x, y, w) => { g.fillStyle = 'rgba(255,240,210,.25)'; g.fillRect((1 + x) * S, (4 + y) * S, w * S, 3); }, 0, null, false, p.weapon, 0);
     }
     H.weapon.classList.toggle('up', p.upgraded); H.weapon.classList.toggle('reloading', p.reload > 0);
     H.name.textContent = p.gun.name; H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;
