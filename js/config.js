@@ -6,7 +6,7 @@ const CFG = {
   WORLD_W: 640,    // largeur logique de la carte du monde (choix du front)
   // vie : 150 PV max ; après regenDelay s sans être touché, la vie remonte de regenRate PV/s jusqu'au max
   // score = points au départ de la partie (100000 temporaire, pour tester la boîte mystère et les portes ; remettre à 0 ensuite)
-  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'rifle', score: 100000 },
+  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'pistol', score: 100000 },
   RELOAD: 2.5,       // durée d'un rechargement (s), lancé tout seul quand le chargeur est vide
   // armes : rate = délai entre deux tirs (s), dmg = dégâts par balle de près, far = dégâts au-delà de fall[1] px
   // (baisse progressive entre fall[0] et fall[1]), pellets = plombs par tir, spread = dispersion (rad),
@@ -17,6 +17,7 @@ const CFG = {
   // équilibrage : dégâts par seconde de près ~6-7 (pistolets), ~7-8 (fusils d'assaut), ~8 (pistolets mitrailleurs, qui faiblissent
   // de loin), ~12-15 (fusils à pompe, de très près), ~8 + traversée (snipers), ~11-13 (mitrailleuses, mais on marche moins vite)
   WEAPONS: {
+    // fusil tactique
     rifle:    { cls: 'rifle',   name: 'M1 Garand',      mag: 14, reserve: 140, rate: 0.24,  dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
     // pistolets
     pistol:   { cls: 'pistol',  name: 'Colt M1911',     mag: 18, reserve: 96,  rate: 0.28,  dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
@@ -58,7 +59,7 @@ const CFG = {
     // arme spéciale : rayon vert qui explose à l'impact (blesse les zombies autour), rare à la boîte
     ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.35, speed: 190, range: 1, spread: 0.02 }
   },
-  // boîte mystère : arme au hasard (toutes sauf celle de départ, rare = moins de chances) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
+  // boîte mystère : arme au hasard (toutes sauf celle qu'on a en main, rare = moins de chances ; le pistolet à rayons sort avec une lueur et une musique légendaires) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
   BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12,
     // tête de mort (seulement sur les maps à plusieurs emplacements) : impossible pendant les `after` premiers tirages sur un
     // emplacement, puis `chance` au tirage suivant et +`step` à chaque tirage ; le crâne reste `show` s, puis la boîte s'envole

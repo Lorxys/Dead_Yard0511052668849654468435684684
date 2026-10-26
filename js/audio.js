@@ -123,6 +123,17 @@ const Sound = {
     this.tone(out, t, 1210, 0.14, { type: 'sawtooth', to: 220, lp: 2500, v: 0.25 });
     this.noise(out, t, 0.06, { f: 5000, q: 2, v: 0.2 });
   },
+  // arme légendaire à la boîte : coup de gong, chœur qui monte (accords tenus) et carillon céleste, ~5 s
+  legendary(o = {}) {
+    if (!this.ctx) return;
+    const [t, out] = this.at(o, 0.7, 0.7);
+    this.tone(out, t, 55, 2.5, { type: 'triangle', v: 0.6 }); this.noise(out, t, 1.2, { type: 'lowpass', f: 900, fEnd: 120, v: 0.4 });   // gong
+    const chords = [[57, 60, 64], [53, 57, 60, 65], [55, 59, 62, 67], [60, 64, 67, 72]];
+    chords.forEach((ch, i) => ch.forEach(n => [-8, 8].forEach(dt =>   // « voix » : deux scies désaccordées, attaque lente
+      this.tone(out, t + 0.3 + i * 1.05, midi(n), 1.1 + (i === 3 ? 1.4 : 0), { type: 'sawtooth', lp: 1400, a: 0.35, v: 0.05, detune: dt }))));
+    [72, 76, 79, 84, 88, 91, 96].forEach((n, i) => this.bell(out, t + 0.2 + i * 0.12, midi(n), 1.4, 0.16));
+    [84, 88, 91, 96, 100].forEach((n, i) => this.bell(out, t + 3.5 + i * 0.09, midi(n), 2, 0.14));
+  },
   // impact du rayon : petite explosion électrique
   zap(o = {}) {
     if (!this.ctx) return;

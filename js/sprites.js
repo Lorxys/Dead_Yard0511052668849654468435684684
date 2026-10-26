@@ -262,6 +262,24 @@ const Sprites = {
     const skull = st.weapon === 'skull', g = c.createLinearGradient(0, by - 46, 0, by + 2);
     g.addColorStop(0, skull ? 'rgba(255,40,30,0)' : 'rgba(140,210,255,0)'); g.addColorStop(1, skull ? 'rgba(255,50,30,.55)' : 'rgba(170,225,255,.55)');
     c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(bx + 2, by - 46, 28, 48); c.globalCompositeOperation = 'source-over';
+    if (st.legend) {   // arme légendaire : colonne de lumière dorée, rayons qui tournent, étincelles qui montent
+      const cx = bx + 16, cy = by - 18;
+      c.globalCompositeOperation = 'lighter';
+      const gl = c.createLinearGradient(0, by - 90, 0, by + 2);
+      gl.addColorStop(0, 'rgba(255,200,60,0)'); gl.addColorStop(1, `rgba(255,210,80,${0.55 + Math.sin(t * 5) * 0.12})`);
+      c.fillStyle = gl; c.fillRect(bx - 4, by - 90, 40, 92);
+      for (let i = 0; i < 10; i++) {   // rayons en pixels autour de l'arme
+        const a = t * 0.8 + i * Math.PI / 5, L = 22 + Math.sin(t * 4 + i) * 5;
+        c.fillStyle = i % 2 ? 'rgba(255,230,140,.5)' : 'rgba(255,190,50,.35)';
+        for (let d = 10; d < L; d += 2) c.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d * 0.8), 1, 1);
+      }
+      for (let i = 0; i < 18; i++) {   // étincelles dorées qui montent en scintillant
+        const k = (t * 0.45 + i * 0.137) % 1, sx = bx + 2 + ((i * 53) % 28) + Math.sin(t * 3 + i) * 2, sy = by - k * 70;
+        c.fillStyle = (i + Math.floor(t * 10)) % 3 ? '#ffe9a0' : '#fff';
+        c.fillRect(Math.round(sx), Math.round(sy), 1, k < 0.6 ? 2 : 1);
+      }
+      c.globalCompositeOperation = 'source-over';
+    }
     if (skull) {   // crâne en double taille qui flotte, orbites rougeoyantes
       const ox = bx + 7, oy = by - 26 + Math.round(Math.sin(t * 3) * 1.5);
       const S = ['.XXXXXXX.', 'XXXXXXXXX', 'XXXXXXXXX', 'XX..X..XX', 'XX..X..XX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..'];
@@ -273,7 +291,7 @@ const Sprites = {
       const G = this.GUNS[st.weapon], ox = bx + 16 - G.len, oy = by - 6 - Math.round(st.rise * 16 + Math.sin(t * 3) * 1.5);
       this.gun((col, rx, ry, w, h) => { c.fillStyle = col; c.fillRect(ox + rx * 2, oy + ry * 2, w * 2, h * 2); }, 0, null, false, st.weapon, 0);
     }
-    return '120,200,255';
+    return st.legend ? '255,200,60' : '120,200,255';
   },
 
   // cadavre allongé, peint sur le calque du sol effacé à chaque nouvelle manche

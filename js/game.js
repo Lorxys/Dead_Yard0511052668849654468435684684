@@ -181,8 +181,8 @@ const Game = {
     const T = CFG.TILE, zones = GameMap.unlock(d);
     this.emit('door', { id: p.id, x: (d.tx + d.w / 2) * T, y: (d.ty + d.h / 2) * T, w: d.w * T, h: d.h * T, zones });
   },
-  // armes de la boîte mystère : toutes sauf celle du départ
-  boxWeapons() { return Object.keys(CFG.WEAPONS).filter(w => w !== CFG.PLAYER.weapon); },
+  // armes de la boîte mystère : toutes (celle qu'on a en main est retirée au tirage)
+  boxWeapons() { return Object.keys(CFG.WEAPONS); },
   // boîte mystère : payer lance le tirage ; une fois l'arme sortie, seul celui qui a payé peut la prendre
   useBox(p) {
     const B = this.box, C = CFG.BOX;
@@ -193,7 +193,7 @@ const Game = {
       // tête de mort : décidée à l'achat, montrée seulement à la fin du tirage (jamais pendant le défilement des armes)
       const S = C.skull, skull = GameMap.boxSpots.length > 1 && B.uses >= S.after && Math.random() < S.chance + S.step * (B.uses - S.after);
       p.score -= C.price; B.uses++;
-      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: skull ? 'skull' : pick(Math.random() * pool.reduce((s, w) => s + (CFG.WEAPONS[w].rare || 1), 0)) });
+      Object.assign(B, { state: 'rolling', t: 0, legend: false, owner: p.id, weapon: skull ? 'skull' : pick(Math.random() * pool.reduce((s, w) => s + (CFG.WEAPONS[w].rare || 1), 0)) });
       this.emit('boxopen', { id: p.id });
     } else if (B.state === 'ready' && B.owner === p.id) {
       p.setWeapon(B.weapon);   // munitions au max ; l'amélioration reste sur l'ancienne arme : à racheter
@@ -211,6 +211,8 @@ const Game = {
       const p = this.players.find(q => q.id === B.owner); if (p) p.score += C.price;
       B.state = 'skull'; B.t = 0; this.emit('boxskull', {});
     }
+    // arme légendaire (pistolet à rayons) : au moment où elle se dévoile, lueur dorée et musique spéciale
+    else if (B.state === 'rolling' && B.weapon === 'ray' && !B.legend && B.t >= C.roll - 0.5) { B.legend = true; this.emit('boxlegend', {}); }
     else if (B.state === 'rolling' && B.t >= C.roll) { B.state = 'ready'; B.t = 0; this.emit('boxready', { id: B.owner, weapon: B.weapon }); }
     else if (B.state === 'ready' && B.t >= C.keep) { Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null }); this.emit('boxclose', {}); }
     else if (B.state === 'skull' && B.t >= S.show) { B.state = 'leaving'; B.t = 0; }
@@ -288,17 +290,25 @@ const Game = {
     // balles
     this.bullets = this.bullets.filter(b => {
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.d += Math.hypot(b.vx, b.vy) * dt;
-      if (b.life <= 0) return false;
-      if (GameMap.solidAt(b.x, b.y)) { if (b.splash) this.splash(b, null); else this.emit('impact', { x: b.x, y: b.y }); return false; }
-      for (const z of this.zs) if (z.hp > 0 && !b.hits?.includes(z.id) && Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
+      // zombies touchés sur tout le trajet parcouru pendant ce pas (le premier pas part du joueur : un zombie collé
+      // au joueur, plus près que le bout du canon, est bien touché ; les balles rapides ne sautent pas par-dessus un zombie)
+      const ax = b.px, ay = b.py, sx = b.x - ax, sy = b.y - ay, L2 = sx * sx + sy * sy || 1;
+      b.px = b.x; b.py = b.y;
+      const along = z => Math.max(0, Math.min(1, ((z.x - ax) * sx + (z.y - 3 - ay) * sy) / L2));
+      const struck = this.zs.filter(z => z.hp > 0 && !b.hits?.includes(z.id) && Math.hypot(z.x - ax - sx * along(z), z.y - 3 - ay - sy * along(z)) < 7)
+        .sort((p, q) => along(p) - along(q));   // du plus proche au plus loin
+      for (const z of struck) {
+        const hx = ax + sx * along(z), hy = ay + sy * along(z);
         moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
-        this.emit('hit', { x: b.x, y: b.y, zx: z.x, zy: z.y });
+        this.emit('hit', { x: hx, y: hy, zx: z.x, zy: z.y });
         this.damageZombie(z, this.bulletDamage(b), b.owner);   // points : chaque balle qui touche + bonus au coup fatal
-        if (b.splash) { this.splash(b, z); return false; }
+        if (b.splash) { b.x = hx; b.y = hy; this.splash(b, z); return false; }
         // balle perforante (sniper) : traverse le zombie et continue sur les suivants, pierce zombies au plus
         if (!b.pierce) return false;
         b.pierce--; (b.hits = b.hits || []).push(z.id);
       }
+      if (b.life <= 0) return false;
+      if (GameMap.solidAt(b.x, b.y)) { if (b.splash) this.splash(b, null); else this.emit('impact', { x: b.x, y: b.y }); return false; }
       return true;
     });
     // grenades : vol en cloche jusqu'au point d'impact, puis explosion à la fin de la mèche
@@ -421,6 +431,12 @@ const Game = {
         this.lights.push({ x, y, t: 0.4 }); Sound.boxRoll(CFG.BOX.roll, this.heard(x, y, 500));
         break;
       }
+      case 'boxlegend': {   // pistolet à rayons : éclair de lumière dorée et fanfare légendaire
+        const b = GameMap.box, x = (b.tx + 1) * CFG.TILE, y = b.ty * CFG.TILE;
+        this.lights.push({ x, y, t: 0.4 }); this.blood(x, y - 14, 30, '#ffd84a', false); this.shake = 0.15;
+        Sound.legendary(this.heard(x, y, 700));
+        break;
+      }
       case 'boxskull': {   // tête de mort : lueur rouge et rire qui résonne jusqu'à ce que la boîte ait disparu
         const b = GameMap.box, x = (b.tx + 1) * CFG.TILE, y = b.ty * CFG.TILE, S = CFG.BOX.skull;
         this.lights.push({ x, y, t: 0.4 }); Sound.laugh(S.show + S.fly, this.heard(x, y, 600));
@@ -540,9 +556,9 @@ const Game = {
     const B = this.box, C = CFG.BOX;
     if (B.state === 'rolling') {
       const phase = 14 * B.t - 1.5 * B.t * B.t, W = this.boxWeapons(), w = B.t > C.roll - 0.5 ? B.weapon : W[Math.floor(phase) % W.length];
-      return { open: true, weapon: w, rise: Math.min(1, B.t / 0.8) };
+      return { open: true, weapon: w, rise: Math.min(1, B.t / 0.8), legend: B.legend };
     }
-    if (B.state === 'ready') return { open: true, weapon: B.weapon, rise: 1, hide: B.t > C.keep - 3 && Math.floor(B.t * 8) % 2 === 1 };
+    if (B.state === 'ready') return { open: true, weapon: B.weapon, rise: 1, legend: B.legend, hide: B.t > C.keep - 3 && Math.floor(B.t * 8) % 2 === 1 };
     if (B.state === 'skull') return { open: true, weapon: 'skull', rise: 1 };
     if (B.state === 'leaving') return { open: false, fly: B.t / C.skull.fly };   // fly : 0 -> 1 pendant l'envol
     return { open: false };
@@ -591,7 +607,7 @@ const Game = {
     halo(Sprites.forgeLit(c, fx0, fy0, t / 1000), fx0 + 16, fy0 + 2, 44 + Math.sin(t / 300) * 4);
     const bx0 = mb.tx * T - cam.x, by0 = mb.ty * T - cam.y - lift;
     c.globalAlpha = fade;
-    halo(Sprites.mysteryBoxLit(c, bx0, by0, t / 1000, bv), bx0 + 16, by0 + (bv.open ? -8 : 4), (bv.open ? 52 : 30) + Math.sin(t / 350) * 3);
+    halo(Sprites.mysteryBoxLit(c, bx0, by0, t / 1000, bv), bx0 + 16, by0 + (bv.open ? -8 : 4), (bv.legend ? 90 : bv.open ? 52 : 30) + Math.sin(t / 350) * 3);
     c.globalAlpha = 1;
     // yeux des zombies et balles traçantes visibles dans le noir
     GameMap.drawFires(c, cam, t, this.W, this.H);
