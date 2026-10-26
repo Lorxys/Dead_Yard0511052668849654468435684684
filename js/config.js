@@ -18,7 +18,11 @@ const CFG = {
     sniper:  { name: 'Kar98k',     rate: 1.2,  dmg: 9,   speed: 420, range: 0.6,  spread: 0 }
   },
   // boîte mystère : arme au hasard (parmi weapons) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
-  BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12, weapons: ['pistol', 'smg', 'ar', 'shotgun', 'sniper'] },
+  BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12, weapons: ['pistol', 'smg', 'ar', 'shotgun', 'sniper'],
+    // tête de mort (seulement sur les maps à plusieurs emplacements) : impossible pendant les `after` premiers tirages sur un
+    // emplacement, puis `chance` au tirage suivant et +`step` à chaque tirage ; le crâne reste `show` s, puis la boîte s'envole
+    // en `fly` s et réapparaît sur un autre emplacement (compteur de tirages remis à 0). Le joueur est remboursé.
+    skull: { after: 4, chance: 0.2, step: 0.1, show: 3, fly: 3 } },
   // grenades : stock de départ/max, +1 par vague, portée et rayon d'explosion en pixels, dégâts au centre, durées en s
   GRENADE: { start: 2, max: 4, perWave: 1, range: 110, radius: 34, damage: 10, fuse: 1.4, flight: 0.55, cooldown: 0.6 },
   SCORE: { hit: 10, kill: 90 },   // points par balle qui touche un zombie, et bonus quand il meurt

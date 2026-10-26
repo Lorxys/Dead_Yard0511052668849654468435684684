@@ -15,17 +15,21 @@ const GameMap = {
   // lit le plan d'une map (sans la dessiner)
   build(id) {
     const def = MAPS[id], T = CFG.TILE, H = def.rows.length, W = def.rows[0].length;
-    const m = { id, def, W, H, chars: def.rows.map(r => [...r]), machines: [], forge: null, box: null, fires: [] }, cells = {};
+    const m = { id, def, W, H, chars: def.rows.map(r => [...r]), machines: [], forge: null, boxSpots: [], fires: [] }, cells = {};
     const PERK = { h: 'health', r: 'regen', s: 'speed', f: 'fire' };
     m.grid = m.chars.map((row, y) => row.map((c, x) => {
       if (FLOOR.includes(c)) return 0;
       if (c === 'P') { m.spawn = { x: x * T, y: y * T }; return 0; }
       if (PERK[c]) m.machines.push({ perk: PERK[c], tx: x, ty: y });
       if (c === 'U' && !m.forge) m.forge = { perk: 'upgrade', tx: x, ty: y, w: 2 };
-      if (c === 'B' && !m.box) m.box = { perk: 'box', tx: x, ty: y, w: 2 };
+      if (c === 'B' && row[x - 1] !== 'B') m.boxSpots.push({ perk: 'box', tx: x, ty: y, w: 2 });
       if (c >= '1' && c <= '9') { (cells[c] = cells[c] || []).push([x, y]); return 2; }
       return 1;
     }));
+    // la boîte mystère commence sur l'emplacement le plus proche du joueur ; m.box = emplacement où elle se trouve
+    const dSpawn = b => Math.hypot((b.tx + 1) * T - m.spawn.x, b.ty * T - m.spawn.y);
+    m.boxStart = m.boxSpots.indexOf(m.boxSpots.reduce((a, b) => dSpawn(b) < dSpawn(a) ? b : a));
+    m.box = m.boxSpots[m.boxStart];
     // carcasses de véhicules : leurs cases deviennent solides ; certaines brûlent encore
     (def.vehicles || []).forEach(v => {
       const [w, h] = Decor.SIZE[v.type];
@@ -81,6 +85,7 @@ const GameMap = {
       else if (k === 'O' && m.chars[y][x - 1] !== 'O' && m.chars[y - 1][x] !== 'O') Decor.fountain(P, px, py);   // dessinée depuis son coin haut-gauche
     }
     (m.def.vehicles || []).forEach(v => Decor[v.type](P, v.x * T, v.y * T, rnd));
+    if (m.boxSpots.length > 1) m.boxSpots.forEach(b => Decor.boxSpot(P, b.tx * T, b.ty * T));   // palettes vides (cachées sous la boîte quand elle y est)
     return c;
   },
   // aperçu d'une map pour le choix de la carte (sol, décors, machines et portes)

@@ -265,6 +265,21 @@ const Sound = {
     const [t, out] = this.at({}, 0.6, 0.1);
     this.clack(out, t); this.noise(out, t + 0.06, 0.12, { f: 2000, q: 1.5, v: 0.4 }); this.clack(out, t + 0.2);
   },
+  // tête de mort : petit rire moqueur qui résonne (salves de « ha ha ha » qui descendent), pendant dur s
+  laugh(dur, o = {}) {
+    if (!this.ctx) return;
+    const [t0, out] = this.at(o, 0.55, 0.9);
+    const formants = [[[850, 720], 5, 1], [[1250, 1100], 7, 0.6], [[2600, 2450], 9, 0.3]];
+    for (let t = t0; t < t0 + dur - 0.4;) {
+      const n = 4 + (Math.random() * 4 | 0), base = 170 + Math.random() * 70;
+      for (let i = 0; i < n && t < t0 + dur - 0.2; i++) {
+        const p = base * (1.25 - i * 0.06);
+        this.voice(out, t, 0.13, { pitch: new Float32Array([p * 1.08, p, p * 0.88]), det: [0, 9], breath: 0.6, formants, a: 0.015, v: 0.7 });
+        t += 0.18;
+      }
+      t += 0.45 + Math.random() * 0.5;   // reprise de souffle avant la salve suivante
+    }
+  },
   boxClose(o = {}) {
     if (!this.ctx) return;
     const [t, out] = this.at(o, 0.4, 0.2);

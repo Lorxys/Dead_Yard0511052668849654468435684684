@@ -95,7 +95,8 @@ const Game = {
     this.players = [new Player(this.localId, s.x, s.y)];
     this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = []; this.events = [];
     // boîte mystère : idle (fermée) -> rolling (les armes défilent) -> ready (l'arme attend son propriétaire) -> idle
-    this.box = { state: 'idle', t: 0, weapon: null, owner: null };
+    // + skull (crâne affiché) -> leaving (s'envole) -> idle sur un autre emplacement ; uses = tirages sur l'emplacement actuel
+    this.box = { state: 'idle', t: 0, weapon: null, owner: null, spot: GameMap.boxStart, uses: 0 };
     this.wave = 0; this.score = 0; this.toSpawn = 0; this.spawnT = 0; this.shake = 0; this.acc = 0; this.ghostHp = CFG.PLAYER.hp;
     document.body.classList.add('playing');   // affiche le joystick grenade sur mobile
     document.getElementById('over').classList.remove('show'); this.nextWave();
@@ -189,8 +190,10 @@ const Game = {
     if (B.state === 'idle') {
       if (p.score < C.price) { this.emit('buyfail', { id: p.id, perk: 'box' }); return; }
       const pool = C.weapons.filter(w => w !== p.weapon);   // jamais l'arme qu'on a déjà en main
-      p.score -= C.price;
-      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: pool[Math.random() * pool.length | 0] });
+      // tête de mort : décidée à l'achat, montrée seulement à la fin du tirage (jamais pendant le défilement des armes)
+      const S = C.skull, skull = GameMap.boxSpots.length > 1 && B.uses >= S.after && Math.random() < S.chance + S.step * (B.uses - S.after);
+      p.score -= C.price; B.uses++;
+      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: skull ? 'skull' : pool[Math.random() * pool.length | 0] });
       this.emit('boxopen', { id: p.id });
     } else if (B.state === 'ready' && B.owner === p.id) {
       p.weapon = B.weapon; p.cd = 0; p.upgraded = false;   // l'amélioration reste sur l'ancienne arme : à racheter
@@ -202,8 +205,22 @@ const Game = {
     const B = this.box, C = CFG.BOX;
     if (B.state === 'idle') return;
     B.t += dt;
-    if (B.state === 'rolling' && B.t >= C.roll) { B.state = 'ready'; B.t = 0; this.emit('boxready', { id: B.owner, weapon: B.weapon }); }
+    const S = C.skull;
+    // le crâne apparaît au moment où l'arme tirée se dévoilerait (0,5 s avant la fin) : le joueur est remboursé
+    if (B.state === 'rolling' && B.weapon === 'skull' && B.t >= C.roll - 0.5) {
+      const p = this.players.find(q => q.id === B.owner); if (p) p.score += C.price;
+      B.state = 'skull'; B.t = 0; this.emit('boxskull', {});
+    }
+    else if (B.state === 'rolling' && B.t >= C.roll) { B.state = 'ready'; B.t = 0; this.emit('boxready', { id: B.owner, weapon: B.weapon }); }
     else if (B.state === 'ready' && B.t >= C.keep) { Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null }); this.emit('boxclose', {}); }
+    else if (B.state === 'skull' && B.t >= S.show) { B.state = 'leaving'; B.t = 0; }
+    else if (B.state === 'leaving' && B.t >= S.fly) {
+      // nouvel emplacement au hasard, jamais le même deux fois de suite ; compteur de tirages remis à 0
+      const others = GameMap.boxSpots.map((_, i) => i).filter(i => i !== B.spot);
+      B.spot = others[Math.random() * others.length | 0]; GameMap.box = GameMap.boxSpots[B.spot];
+      Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null, uses: 0 });
+      this.emit('boxclose', {});
+    }
   },
   // dégâts d'une balle selon la distance parcourue (baisse progressive entre fall[0] et fall[1])
   bulletDamage(b) {
@@ -387,6 +404,11 @@ const Game = {
         this.lights.push({ x, y, t: 0.4 }); Sound.boxRoll(CFG.BOX.roll, this.heard(x, y, 500));
         break;
       }
+      case 'boxskull': {   // tête de mort : lueur rouge et rire qui résonne jusqu'à ce que la boîte ait disparu
+        const b = GameMap.box, x = (b.tx + 1) * CFG.TILE, y = b.ty * CFG.TILE, S = CFG.BOX.skull;
+        this.lights.push({ x, y, t: 0.4 }); Sound.laugh(S.show + S.fly, this.heard(x, y, 600));
+        break;
+      }
       case 'boxclose': { const b = GameMap.box; Sound.boxClose(this.heard((b.tx + 1) * CFG.TILE, b.ty * CFG.TILE)); break; }
       case 'door': {   // la barricade s'effondre : poussière, éclats de bois, grondement ; bannière avec la zone ouverte
         Sound.door(this.heard(e.x, e.y));
@@ -498,6 +520,8 @@ const Game = {
       return { open: true, weapon: w, rise: Math.min(1, B.t / 0.8) };
     }
     if (B.state === 'ready') return { open: true, weapon: B.weapon, rise: 1, hide: B.t > C.keep - 3 && Math.floor(B.t * 8) % 2 === 1 };
+    if (B.state === 'skull') return { open: true, weapon: 'skull', rise: 1 };
+    if (B.state === 'leaving') return { open: false, fly: B.t / C.skull.fly };   // fly : 0 -> 1 pendant l'envol
     return { open: false };
   },
   // icône d'atout (9x9 pixels : fond sombre bordé de la couleur, symbole au centre), agrandie en CSS
@@ -517,7 +541,9 @@ const Game = {
     GameMap.drawDoors(c, cam);
     GameMap.machines.forEach(m => Sprites.perkMachine(c, m.tx * T - cam.x, m.ty * T - cam.y, m.perk));
     const fg = GameMap.forge; Sprites.forge(c, fg.tx * T - cam.x, fg.ty * T - cam.y);
-    const mb = GameMap.box, bv = this.boxView(); Sprites.mysteryBox(c, mb.tx * T - cam.x, mb.ty * T - cam.y, bv.open);
+    // boîte qui s'envole (tête de mort) : elle monte doucement puis de plus en plus vite, et s'efface par paliers
+    const mb = GameMap.box, bv = this.boxView(), lift = bv.fly ? Math.round(bv.fly * bv.fly * 90) : 0, fade = bv.fly ? Math.ceil((1 - bv.fly) * 8) / 8 : 1;
+    c.globalAlpha = fade; Sprites.mysteryBox(c, mb.tx * T - cam.x, mb.ty * T - cam.y - lift, bv.open); c.globalAlpha = 1;
     [...this.zs, ...this.players].sort((a, b) => a.y - b.y).forEach(e => e.draw(c, cam));
     this.nades.forEach(n => Sprites.grenade(c, n.x - cam.x, n.y - cam.y, n.z));
     this.fx.forEach(f => { c.fillStyle = f.col; c.fillRect(Math.round(f.x - cam.x), Math.round(f.y - cam.y), f.s, f.s); });
@@ -540,8 +566,10 @@ const Game = {
     });
     const fx0 = fg.tx * T - cam.x, fy0 = fg.ty * T - cam.y;
     halo(Sprites.forgeLit(c, fx0, fy0, t / 1000), fx0 + 16, fy0 + 2, 44 + Math.sin(t / 300) * 4);
-    const bx0 = mb.tx * T - cam.x, by0 = mb.ty * T - cam.y;
+    const bx0 = mb.tx * T - cam.x, by0 = mb.ty * T - cam.y - lift;
+    c.globalAlpha = fade;
     halo(Sprites.mysteryBoxLit(c, bx0, by0, t / 1000, bv), bx0 + 16, by0 + (bv.open ? -8 : 4), (bv.open ? 52 : 30) + Math.sin(t / 350) * 3);
+    c.globalAlpha = 1;
     // yeux des zombies et balles traçantes visibles dans le noir
     GameMap.drawFires(c, cam, t, this.W, this.H);
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));

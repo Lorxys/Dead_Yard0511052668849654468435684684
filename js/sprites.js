@@ -214,9 +214,17 @@ const Sprites = {
     c.fillStyle = on ? '#8ad4ff' : '#2a4a60';
     for (const qx of [5, 14, 23]) Q.forEach((row, j) => { for (let i = 0; i < 3; i++) if (row[i] === 'X') c.fillRect(bx + qx + i, by + 8 + j, 1, 1); });
     if (!st.open) return on ? '120,200,255' : null;
-    const g = c.createLinearGradient(0, by - 46, 0, by + 2);
-    g.addColorStop(0, 'rgba(140,210,255,0)'); g.addColorStop(1, 'rgba(170,225,255,.55)');
+    // faisceau de lumière ; rouge sang quand la boîte sort la tête de mort
+    const skull = st.weapon === 'skull', g = c.createLinearGradient(0, by - 46, 0, by + 2);
+    g.addColorStop(0, skull ? 'rgba(255,40,30,0)' : 'rgba(140,210,255,0)'); g.addColorStop(1, skull ? 'rgba(255,50,30,.55)' : 'rgba(170,225,255,.55)');
     c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(bx + 2, by - 46, 28, 48); c.globalCompositeOperation = 'source-over';
+    if (skull) {   // crâne en double taille qui flotte, orbites rougeoyantes
+      const ox = bx + 7, oy = by - 26 + Math.round(Math.sin(t * 3) * 1.5);
+      const S = ['.XXXXXXX.', 'XXXXXXXXX', 'XXXXXXXXX', 'XX..X..XX', 'XX..X..XX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..'];
+      S.forEach((row, j) => { for (let i = 0; i < 9; i++) if (row[i] === 'X') { c.fillStyle = j < 2 || i < 2 ? '#f0e6cc' : j > 6 ? '#a89a7a' : '#d8ccae'; c.fillRect(ox + i * 2, oy + j * 2, 2, 2); } });
+      c.fillStyle = Math.sin(t * 6) > 0 ? '#ff2a1a' : '#a01010'; c.fillRect(ox + 5, oy + 7, 2, 2); c.fillRect(ox + 11, oy + 7, 2, 2);
+      return '255,50,30';
+    }
     if (st.weapon && !st.hide) {   // arme dessinée en double taille pour bien la reconnaître
       const G = this.GUNS[st.weapon], ox = bx + 16 - G.len, oy = by - 6 - Math.round(st.rise * 16 + Math.sin(t * 3) * 1.5);
       this.gun((col, rx, ry, w, h) => { c.fillStyle = col; c.fillRect(ox + rx * 2, oy + ry * 2, w * 2, h * 2); }, 0, null, false, st.weapon, 0);

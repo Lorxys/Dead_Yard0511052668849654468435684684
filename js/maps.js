@@ -4,7 +4,9 @@
 //   #  mur (sacs de sable ou ruines selon la map)   S sacs de sable   C caisse   X hérisson tchèque
 //   W  barbelés   T arbre mort   t tombe   R gravats   O fontaine (2x2 cases)
 //   h r s f  machines à atout (Blindage, Second Souffle, Pied Léger, Double Détente) : mur au-dessus, sol libre en dessous
-//   UU forge d'amélioration (on s'en sert par le haut)   BB boîte mystère
+//   UU forge d'amélioration (on s'en sert par le haut)
+//   BB emplacement de la boîte mystère : avec plusieurs emplacements, la boîte est sur un seul à la fois (au départ le plus
+//      proche du joueur) et déménage quand elle sort la tête de mort ; les emplacements vides restent des palettes
 //   P  apparition du joueur (au coin haut-gauche de la case)
 //   1-9 portes achetables : les cases d'un même chiffre forment une porte, qui sépare deux zones
 // zones : [nom, case de départ] ; la zone de départ du joueur est ouverte dès le début, les autres s'ouvrent avec les portes.
@@ -67,7 +69,7 @@ const MAPS = {
       '############################################################',
       '#...........s.................................f............#',
       '#..T..............CC......X....SSSS......................T.#',
-      '#..............................S..S.................C......#',
+      '#..............................S..S.....BB..........C......#',
       '#:::::::::::::::...........................................#',
       '#:::::::::::::::......................................X....#',
       '#:::::::::::::::::::::::::::::::::::.......................#',
@@ -97,14 +99,14 @@ const MAPS = {
       '#,,,,,,,,,,,,,,,,,2...::::::::::::::::...3.................#',
       '#,,,,,,,,,,,,,,,,,2...:::::::OO:::::::...3:::::::::::......#',
       '#,,,,,,,,,,,,,,,,,2...:::::::OO:::::::...3:::::::::::......#',
-      '#,,,,,,,,,,,,,,T,,#.X.::::::::::::::::...#:::::::::::......#',
+      '#,,,,,,,,,,BB,,T,,#.X.::::::::::::::::...#:::::::::::......#',
       '#,,,,,,,,,CC,,,,,,#...::::::::::::::::...#....#R##...##R#..#',
       '#,,,,,,,,,,C,,,,,,#...::::::::::::::::...#....#...:::...#..#',
       '#,,,T,,,,,,,,,,,,,#...::::::::P:::::::...#....#...:::...#..#',
       '#,,,,,,,,,,,,,,,,,#...::::::::::::::::...#....#.........#..#',
       '#,,,,,,,,,,,,T,,,,#...::::::::::::::::...#....#.C.......R..#',
       '#,,,,,,,,,,,,,,,,,#...::::::::::::::::...#....#.........#..#',
-      '#,,,,,,,,,,,,,,,,,#...::::::::::::::::...#....R.........#..#',
+      '#,,,,,,,,,,,,,,,,,#...::::::::::::::::...#....R.....BB..#..#',
       '#,,,,,,,T,,,,,,,,,#......................#....#.......C.#..#',
       '#,,,,,,,,,,,,,,,,,#.#RRRR..........R####.#....#.........#..#',
       '#,,,,,,,,,,,,,,T,,#.#####..........#####.#....#.C.......#..#',

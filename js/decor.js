@@ -109,6 +109,16 @@ const Decor = {
     P('#8b9566', cx + 7, cy + 2, 4, 2); P('#6e7852', cx + 10, cy + 1, 2, 2); P('#6a0808', cx + 7, cy + 4, 2, 1);   // bras qui sort du bassin
   },
 
+  // emplacement de la boîte mystère quand elle n'y est pas : palette vide, chaîne qui traîne, bougie éteinte, sang séché
+  boxSpot(P, x, y) {
+    P('rgba(0,0,0,.35)', x + 1, y + 5, 31, 11);
+    for (let i = 0; i < 4; i++) { P('#3a2814', x + 2 + i * 7, y + 4, 6, 10); P('#4e3620', x + 2 + i * 7, y + 4, 6, 1); P('#24180c', x + 7 + i * 7, y + 4, 1, 10); }
+    P('#24180c', x + 2, y + 8, 28, 1);
+    for (let i = 0; i < 8; i++) P(i % 2 ? '#3e3a34' : '#5a564e', x + 3 + i * 2, y + 13 + (i % 2), 2, 1);
+    P('#c8c0a0', x + 27, y + 2, 2, 4); P('#3a3020', x + 27, y + 1, 1, 1);
+    P('#4a0606', x + 10, y + 6, 3, 2); P('#5a0808', x + 20, y + 10, 2, 1);
+  },
+
   // ---------- véhicules (x, y = coin haut-gauche de leur première case) ----------
   // char Tigre allemand éventré, canon de 88 qui pend, équipage mort sur la tourelle
   tiger(P, x, y, rnd) {
