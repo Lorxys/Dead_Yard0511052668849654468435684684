@@ -58,22 +58,6 @@ body.playing #buy.show{display:flex}
 @media (pointer:coarse){#buy button small{display:none}}
 #buyPrice{font-size:8px;color:#ffd84a;padding:3px 5px;background:rgba(10,4,4,.85);box-shadow:0 0 0 2px #000;white-space:nowrap}
 #buyPrice:empty{display:none}
-/* arme en main, en haut à gauche sous la vie : nom, logo, balles dans le chargeur | balles en réserve (en blanc, contour noir) */
-#weapon{position:fixed;left:calc(env(safe-area-inset-left,0px) + 40px);top:calc(env(safe-area-inset-top,0px) + 48px);display:none;flex-direction:column;align-items:flex-start;gap:10px;
-  color:#fff;pointer-events:none;
-  --outline:-4px -4px 0 #000,0 -4px 0 #000,4px -4px 0 #000,-4px 0 0 #000,4px 0 0 #000,-4px 4px 0 #000,0 4px 0 #000,4px 4px 0 #000,7px 7px 0 rgba(0,0,0,.6)}
-body.playing #weapon{display:flex}
-#gunName{font-size:22px;font-weight:normal;color:#e9d9c4;letter-spacing:1px;text-shadow:-3px -3px 0 #000,3px -3px 0 #000,-3px 3px 0 #000,3px 3px 0 #000,0 3px 0 #000,0 -3px 0 #000,3px 0 0 #000,-3px 0 0 #000}
-#weapon.up #gunName{color:#c080ff}
-#weapon .ammo{display:flex;align-items:center;gap:20px}
-#weapon .ammo b{font-weight:normal;color:#fff;text-shadow:var(--outline)}
-#mag{font-size:60px}
-#reserve{font-size:40px}
-#gunIcon{display:block;width:240px;height:96px}
-#weapon i{display:block;width:7px;height:66px;background:#fff;box-shadow:0 0 0 3px #000}
-#weapon .ammo b.low{color:#ff3a2a}
-#weapon.reloading #mag,#weapon.reloading #gunIcon{animation:magBlink .5s steps(1) infinite}
-@keyframes magBlink{50%{opacity:0}}
 #buy.off button{display:none}
 #buy.poor button{filter:grayscale(.8) brightness(.6)}
 #buy.poor #buyPrice{color:#c41a14}

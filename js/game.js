@@ -16,8 +16,7 @@ const Game = {
   cam: { x: 0, y: 0 }, state: 'menu', players: [], zs: [], bullets: [], nades: [], fx: [], lights: [], events: [], shake: 0, acc: 0, localId: 1,
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
-    this.hud = { nades: document.getElementById('nades'), weapon: document.getElementById('weapon'), wave: document.getElementById('wave'), score: document.getElementById('score'),
-      name: document.getElementById('gunName'), icon: document.getElementById('gunIcon'), mag: document.getElementById('mag'), reserve: document.getElementById('reserve') };
+    this.hud = { nades: document.getElementById('nades'), wave: document.getElementById('wave'), score: document.getElementById('score') };
     // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
@@ -472,23 +471,6 @@ const Game = {
     this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= p.regenDelay);
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
-    // arme en main (en bas à droite) : nom, logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
-    const H = this.hud;
-    // dessiné directement en x12 sur le canvas (ombre noire, halo violet si améliorée), sans mise à l'échelle CSS
-    const iconKey = p.weapon + p.upgraded;
-    if (H.iconOf !== iconKey) {
-      const g = H.icon.getContext('2d'), S = 12; g.clearRect(0, 0, 240, 96); H.iconOf = iconKey;
-      const draw = (dx, dy, tint) => Sprites.gun((col, x, y, w, h) => { g.fillStyle = tint || col; g.fillRect((1 + x) * S + dx, (4 + y) * S + dy, w * S, h * S); }, 0, null, false, p.weapon, 0);
-      const ring = d => [[-d, 0], [d, 0], [0, -d], [0, d], [-d, -d], [d, -d], [-d, d], [d, d]];
-      if (p.upgraded) ring(9).forEach(([dx, dy]) => draw(dx, dy, '#b060ff'));
-      ring(4).forEach(([dx, dy]) => draw(dx, dy, '#000'));   // contour noir
-      draw(7, 7, 'rgba(0,0,0,.6)'); draw(0, 0);
-      // reflet clair sur le dessus pour que l'arme se détache du fond sombre
-      Sprites.gun((col, x, y, w) => { g.fillStyle = 'rgba(255,240,210,.25)'; g.fillRect((1 + x) * S, (4 + y) * S, w * S, 3); }, 0, null, false, p.weapon, 0);
-    }
-    H.weapon.classList.toggle('up', p.upgraded); H.weapon.classList.toggle('reloading', p.reload > 0);
-    H.name.textContent = p.gun.name; H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;
-    H.mag.classList.toggle('low', p.mag <= p.magSize / 4); H.reserve.classList.toggle('low', !p.reserve);
     this.hpBar.style.setProperty('--seg', zombieDamage(this.wave) / p.maxHp * 100 + '%');   // un cran = un coup de zombie de cette manche
     // bouton posé sur la machine devant laquelle se tient le joueur, prix en dessous
     const m = p.alive && GameMap.nearMachine(p), B = this.buy, o = m && this.offer(p, m);
@@ -629,6 +611,38 @@ const Game = {
     }
     // voile rouge quand on prend un coup
     if (p.hurtT > 0) { c.fillStyle = `rgba(150,0,0,${p.hurtT * 0.9})`; c.fillRect(0, 0, this.W, this.H); }
+    this.drawAmmo(c, p, t);
+  },
+  // arme en main, dessinée dans l'image du jeu sous la barre de vie : logo, balles dans le chargeur | balles en réserve
+  // (chiffres blancs en pixel art, contour noir ; rouges quand il en reste peu ; chargeur et logo clignotent pendant le rechargement)
+  DIGITS: ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001',
+    '111100111001111', '111100111101111', '111001001010010', '111101111101111', '111101111001111'],
+  drawAmmo(c, p, t) {
+    if (!p.alive) return;
+    const r = this.cv.getBoundingClientRect(), k = r.width / this.W, hb = this.hpBar.getBoundingClientRect();
+    const x0 = Math.round((hb.left - r.left) / k), y0 = Math.round((hb.bottom - r.top) / k) + 5, blink = p.reload > 0 && Math.floor(t / 250) % 2;
+    // pixel de taille s avec son contour (premier passage) puis sa couleur (second passage)
+    const px = (x, y, w, h, col, pass) => pass ? (c.fillStyle = col, c.fillRect(x, y, w, h)) : (c.fillStyle = '#000', c.fillRect(x - 1, y - 1, w + 2, h + 2));
+    const text = (str, x, y, s, col, pass) => {
+      for (const ch of String(str)) {
+        const d = this.DIGITS[ch];
+        for (let i = 0; i < 15; i++) if (d[i] === '1') px(x + (i % 3) * s, y + (i / 3 | 0) * s, s, s, col, pass);
+        x += 4 * s;
+      }
+      return x;
+    };
+    const G = 3, gx = x0 + 2, gy = y0 + 11, magCol = p.mag <= p.magSize / 4 ? '#ff3a2a' : '#fff', resCol = p.reserve ? '#fff' : '#ff3a2a';
+    for (const pass of [0, 1]) {
+      if (!blink) {
+        if (!pass && p.upgraded) Sprites.gun((col, x, y, w, h) => { c.fillStyle = '#b060ff'; c.fillRect(gx + x * G - 2, gy + y * G - 2, w * G + 4, h * G + 4); }, 0, null, false, p.weapon, 0);
+        Sprites.gun((col, x, y, w, h) => px(gx + x * G, gy + y * G, w * G, h * G, col, pass), 0, null, false, p.weapon, 0);
+      }
+      let x = x0 + 62;
+      if (!blink) text(p.mag, x, y0, 4, magCol, pass);
+      x += String(p.mag).length * 16 + 3;
+      px(x, y0, 2, 20, '#fff', pass);
+      text(p.reserve, x + 6, y0 + 5, 3, resCol, pass);
+    }
   },
   loop(t) {
     const dt = Math.min(0.25, (t - this.last) / 1000); this.last = t;
