@@ -30,7 +30,7 @@ const Game = {
     GameMap.init(); Input.init(document.getElementById('touch'));
     Sound.attach(); Sound.menu(true);   // la musique du menu démarre au premier appui (règle des navigateurs)
     document.getElementById('restart').onclick = () => this.reset();
-    document.getElementById('toMenu').onclick = () => this.toMenu();
+    document.getElementById('toMenu').onclick = () => this.toWorld();
     // menu : Jouer ouvre la carte du monde, où l'on choisit le front puis la map
     WorldScene.init((front, map) => { this.front = front; this.mapId = map; WorldScene.hide(); this.reset(); }, () => this.toMenu());
     document.getElementById('play').onclick = () => { this.lockLandscape(); this.toWorld(); };
