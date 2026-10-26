@@ -129,16 +129,16 @@ const Game = {
     if (this.wave > 1) this.players.forEach(p => { if (p.alive) p.grenades = Math.min(CFG.GRENADE.max, p.grenades + CFG.GRENADE.perWave); });
     this.emit('wave', { n: this.wave });
   },
-  // point d'impact d'une grenade : vers la cible (relative au joueur), limité par la portée et arrêté par les obstacles
+  // point d'impact d'une grenade : vers la cible (relative au joueur), limité par la portée.
+  // Lancée en cloche, elle passe par-dessus murs et obstacles, mais ne peut pas retomber sur l'un d'eux :
+  // si la cible est sur un obstacle (ou hors de la map), elle retombe juste devant, côté joueur, sur le sol libre le plus proche
   nadeTarget(p, rel) {
     const d = Math.min(Math.hypot(rel.x, rel.y), CFG.GRENADE.range), a = Math.atan2(rel.y, rel.x);
-    let tx = p.x, ty = p.y;
-    for (let s = 2; s <= d; s += 2) {
-      const nx = p.x + Math.cos(a) * s, ny = p.y + Math.sin(a) * s;
-      if (GameMap.solidAt(nx, ny)) break;
-      tx = nx; ty = ny;
+    for (let s = d; s > 0; s -= 2) {
+      const x = p.x + Math.cos(a) * s, y = p.y + Math.sin(a) * s;
+      if (!GameMap.blocked(x, y, 2)) return { x, y };
     }
-    return { x: tx, y: ty };
+    return { x: p.x, y: p.y };
   },
   throwGrenade(p, rel) {
     const tg = this.nadeTarget(p, rel);
