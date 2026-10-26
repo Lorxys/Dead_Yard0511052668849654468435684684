@@ -7,16 +7,18 @@ const CFG = {
   // vie : 150 PV max ; après regenDelay s sans être touché, la vie remonte de regenRate PV/s jusqu'au max
   // score = points au départ de la partie (100000 temporaire, pour tester la boîte mystère et les portes ; remettre à 0 ensuite)
   PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'rifle', score: 100000 },
+  RELOAD: 2,       // durée d'un rechargement (s), lancé tout seul quand le chargeur est vide
   // armes : rate = délai entre deux tirs (s), dmg = dégâts par balle de près, far = dégâts au-delà de fall[1] px
   // (baisse progressive entre fall[0] et fall[1]), pellets = plombs par tir, spread = dispersion (rad),
-  // speed = vitesse des balles (px/s), range = durée de vie des balles (s)
+  // speed = vitesse des balles (px/s), range = durée de vie des balles (s), mag = balles par chargeur, reserve = balles en réserve
+  // (un tir de fusil à pompe = une cartouche)
   WEAPONS: {
-    rifle:   { name: 'M1 Garand',  rate: 0.16, dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
-    pistol:  { name: 'Colt M1911', rate: 0.28, dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
-    smg:     { name: 'Thompson',   rate: 0.09, dmg: 1.5, far: 0.4, fall: [40, 110], speed: 230, range: 0.6, spread: 0.16 },
-    ar:      { name: 'StG 44',     rate: 0.11, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
-    shotgun: { name: 'Trench Gun', rate: 0.8,  dmg: 1.6, far: 0.2, fall: [20, 75], pellets: 7, speed: 220, range: 0.38, spread: 0.55 },
-    sniper:  { name: 'Kar98k',     rate: 1.2,  dmg: 9,   speed: 420, range: 0.6,  spread: 0 }
+    rifle:   { name: 'M1 Garand',  mag: 14, reserve: 140, rate: 0.16, dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
+    pistol:  { name: 'Colt M1911', mag: 18, reserve: 96,  rate: 0.28, dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
+    smg:     { name: 'Thompson',   mag: 40, reserve: 180, rate: 0.18, dmg: 1.5, far: 0.4, fall: [40, 110], speed: 230, range: 0.6, spread: 0.16 },
+    ar:      { name: 'StG 44',     mag: 50, reserve: 240, rate: 0.22, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
+    shotgun: { name: 'Trench Gun', mag: 6,  reserve: 60,  rate: 0.8,  dmg: 1.6, far: 0.2, fall: [20, 75], pellets: 7, speed: 220, range: 0.38, spread: 0.55 },
+    sniper:  { name: 'Kar98k',     mag: 8,  reserve: 120, rate: 1.2,  dmg: 9,   speed: 420, range: 0.6,  spread: 0 }
   },
   // boîte mystère : arme au hasard (parmi weapons) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
   BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12, weapons: ['pistol', 'smg', 'ar', 'shotgun', 'sniper'],
@@ -37,10 +39,13 @@ const CFG = {
     fire:   { name: 'Double Détente', color: '#ffd23a', desc: 'Cadence de tir x1,7', info: 'Augmente la vitesse de tir', mult: 1.7 }
   },
   // machine d'amélioration en bas de la map : l'arme en main fait mult fois plus de dégâts ;
-  // l'amélioration est perdue si on change d'arme (il faut la racheter pour la nouvelle)
-  UPGRADE: { name: 'Arme Améliorée', color: '#b060ff', price: 5000, desc: 'Dégâts x2', info: 'Augmente la puissance de l\'arme', mult: 2 },
+  // l'amélioration est perdue si on change d'arme (il faut la racheter pour la nouvelle) ;
+  // chargeur mag fois plus grand, réserve reserve fois plus grande, et l'arme ressort pleine
+  UPGRADE: { name: 'Arme Améliorée', color: '#b060ff', price: 5000, desc: 'Dégâts x2', info: 'Augmente la puissance de l\'arme', mult: 2, mag: 2, reserve: 3 },
   // portes achetables (barricades entre les zones) : prix, et durée en s pendant laquelle elles s'effondrent avant de laisser passer
   DOOR: { name: 'Barricade', color: '#c9b48a', price: 1000, fade: 2.5 },
+  // boîte de munitions : prix selon l'arme en main (normale ou améliorée) ; l'achat remplit le chargeur et la réserve (impossible s'ils sont déjà pleins)
+  AMMO: { name: 'Munitions', info: 'Remplit chargeur et réserve', full: 'Munitions pleines', color: '#d8b04a', price: 500, priceUp: 2500 },
   // pas d'invincibilité : chaque zombie qui frappe doit attendre dmgCd s avant de refrapper, les autres peuvent toujours toucher
   // vitesse = speed + bonus par vague (plafonné) + petit aléa
   // dégâts par coup selon la manche : [à partir de la manche, dégâts] -> 30, puis 50 dès la manche 11, puis 75 dès la manche 50

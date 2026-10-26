@@ -14,7 +14,15 @@ class Player {
     this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = CFG.PLAYER.score;
     this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {}; this.upgraded = false; this.weapon = CFG.PLAYER.weapon;
     this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.hurtT = 0; this.flash = 0; this.walk = 0;
+    this.reload = 0; this.refill();   // reload = temps restant du rechargement en cours (s)
   }
+  // munitions de l'arme en main : chargeur et réserve max (x2 et x3 si elle est améliorée)
+  get magSize() { return this.gun.mag * (this.upgraded ? CFG.UPGRADE.mag : 1); }
+  get reserveMax() { return this.gun.reserve * (this.upgraded ? CFG.UPGRADE.reserve : 1); }
+  get ammoFull() { return this.mag >= this.magSize && this.reserve >= this.reserveMax; }
+  refill() { this.mag = this.magSize; this.reserve = this.reserveMax; this.reload = 0; }
+  // nouvelle arme en main (boîte mystère) : pas améliorée, munitions au max
+  setWeapon(w) { this.weapon = w; this.upgraded = false; this.cd = 0; this.refill(); }
   // caractéristiques modifiées par les atouts achetés
   get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
   get gun() { return CFG.WEAPONS[this.weapon]; }   // arme en main
@@ -38,9 +46,20 @@ class Player {
     const aim = intent.aim;
     if (aim && Math.hypot(aim.x, aim.y) > 0.1) this.a = Math.atan2(aim.y, aim.x);
     else if (m > 0.2) this.a = Math.atan2(mv.y, mv.x);
-    if (intent.fire && this.cd <= 0) {
+    // rechargement : à la fin, le chargeur se remplit avec ce qu'il reste en réserve
+    if (this.reload > 0 && (this.reload -= dt) <= 0) {
+      const n = Math.min(this.magSize - this.mag, this.reserve);
+      this.mag += n; this.reserve -= n; this.reload = 0;
+    }
+    if (intent.fire && this.cd <= 0 && this.reload <= 0 && !this.mag) {
+      if (this.reserve > 0) { this.reload = CFG.RELOAD; world.emit('reload', { id: this.id, x: this.x, y: this.y }); }
+      else { this.cd = 0.35; world.emit('dry', { id: this.id }); }   // chargeur et réserve vides : clic à vide
+    }
+    if (intent.fire && this.cd <= 0 && this.reload <= 0 && this.mag > 0) {
       // le reste du délai est reporté pour que la cadence réelle suive exactement fireRate malgré le pas fixe
       this.cd = (this.cd > -dt ? this.cd : 0) + this.fireRate; this.flash = 0.05;
+      // une balle de moins ; chargeur vide -> rechargement automatique s'il reste des balles en réserve
+      if (--this.mag === 0 && this.reserve > 0) { this.reload = CFG.RELOAD; world.emit('reload', { id: this.id, x: this.x, y: this.y }); }
       // un tir = une balle, ou une gerbe de plombs pour le fusil à pompe
       const g = this.gun, v = g.speed, k = this.damage;
       for (let i = 0; i < (g.pellets || 1); i++) {
@@ -67,6 +86,7 @@ class Player {
   draw(c, cam) {
     if (!this.alive || (this.hurtT > 0 && Math.floor(this.hurtT * 14) % 2)) return;
     Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0, weapon: this.weapon });
+    if (this.reload > 0) Sprites.reloadBar(c, this.x - cam.x, this.y - cam.y - 20, 1 - this.reload / CFG.RELOAD);
   }
 }
 

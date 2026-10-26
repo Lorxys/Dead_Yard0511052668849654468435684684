@@ -15,7 +15,7 @@ const GameMap = {
   // lit le plan d'une map (sans la dessiner)
   build(id) {
     const def = MAPS[id], T = CFG.TILE, H = def.rows.length, W = def.rows[0].length;
-    const m = { id, def, W, H, chars: def.rows.map(r => [...r]), machines: [], forge: null, boxSpots: [], fires: [] }, cells = {};
+    const m = { id, def, W, H, chars: def.rows.map(r => [...r]), machines: [], forge: null, boxSpots: [], ammo: [], fires: [] }, cells = {};
     const PERK = { h: 'health', r: 'regen', s: 'speed', f: 'fire' };
     m.grid = m.chars.map((row, y) => row.map((c, x) => {
       if (FLOOR.includes(c)) return 0;
@@ -23,6 +23,7 @@ const GameMap = {
       if (PERK[c]) m.machines.push({ perk: PERK[c], tx: x, ty: y });
       if (c === 'U' && !m.forge) m.forge = { perk: 'upgrade', tx: x, ty: y, w: 2 };
       if (c === 'B' && row[x - 1] !== 'B') m.boxSpots.push({ perk: 'box', tx: x, ty: y, w: 2 });
+      if (c === 'A') m.ammo.push({ perk: 'ammo', tx: x, ty: y });
       if (c >= '1' && c <= '9') { (cells[c] = cells[c] || []).push([x, y]); return 2; }
       return 1;
     }));
@@ -82,6 +83,7 @@ const GameMap = {
       else if (k === 'T') Decor.tree(P, px, py, rnd);
       else if (k === 't') Decor.tomb(P, px, py, rnd);
       else if (k === 'R') Decor.rubble(P, px, py, rnd);
+      else if (k === 'A') Decor.ammo(P, px, py);
       else if (k === 'O' && m.chars[y][x - 1] !== 'O' && m.chars[y - 1][x] !== 'O') Decor.fountain(P, px, py);   // dessinée depuis son coin haut-gauche
     }
     (m.def.vehicles || []).forEach(v => Decor[v.type](P, v.x * T, v.y * T, rnd));
@@ -177,6 +179,9 @@ const GameMap = {
     if (Math.hypot(p.x - (b.tx + b.w / 2) * T, (p.y - (b.ty + 0.5) * T) * 1.3) < 28) return b;
     const m = this.machines.find(m => Math.hypot(p.x - (m.tx + 0.5) * T, p.y - (m.ty + 1) * T) < 20);
     if (m) return m;
+    // boîte de munitions : utilisable de n'importe quel côté
+    const a = this.ammo.find(a => Math.hypot(p.x - (a.tx + 0.5) * T, p.y - (a.ty + 0.5) * T) < 18);
+    if (a) return a;
     return this.doors.find(d => d.state === 'closed' &&
       Math.hypot(p.x - Math.max(d.tx * T, Math.min((d.tx + d.w) * T, p.x)), p.y - Math.max(d.ty * T, Math.min((d.ty + d.h) * T, p.y))) < 14) || null;
   },

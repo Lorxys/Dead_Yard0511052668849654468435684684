@@ -16,7 +16,8 @@ const Game = {
   cam: { x: 0, y: 0 }, state: 'menu', players: [], zs: [], bullets: [], nades: [], fx: [], lights: [], events: [], shake: 0, acc: 0, localId: 1,
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
-    this.hud = { nades: document.getElementById('nades'), weapon: document.getElementById('weapon'), wave: document.getElementById('wave'), score: document.getElementById('score') };
+    this.hud = { nades: document.getElementById('nades'), weapon: document.getElementById('weapon'), wave: document.getElementById('wave'), score: document.getElementById('score'),
+      icon: document.getElementById('gunIcon'), mag: document.getElementById('mag'), reserve: document.getElementById('reserve') };
     // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
@@ -154,6 +155,8 @@ const Game = {
   // (atout déjà acquis, boîte en plein tirage ou arme sortie pour un autre joueur)
   offer(p, m) {
     if (m.perk === 'door') return { name: CFG.DOOR.name, info: 'Accès : ' + GameMap.doorTarget(m, p), color: CFG.DOOR.color, label: 'Ouvrir', price: CFG.DOOR.price };
+    if (m.perk === 'ammo') return p.ammoFull ? { name: CFG.AMMO.full, info: '', color: CFG.AMMO.color, label: '', price: 0, off: true }
+      : { name: CFG.AMMO.name, info: CFG.AMMO.info, color: CFG.AMMO.color, label: 'Acheter', price: this.ammoPrice(p) };
     if (m.perk === 'box') {
       const B = this.box, C = CFG.BOX;
       if (B.state === 'idle') return { name: C.name, info: C.info, color: C.color, label: 'Acheter', price: C.price };
@@ -169,13 +172,23 @@ const Game = {
     const m = GameMap.nearMachine(p); if (!m) return;
     if (m.perk === 'box') return this.useBox(p);
     if (m.perk === 'door') return this.openDoor(p, m);
+    if (m.perk === 'ammo') return this.buyAmmo(p, m);
     const def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
     if (this.owns(p, m.perk)) return;   // chaque atout et l'amélioration ne s'achètent qu'une fois
     if (p.score < price) { this.emit('buyfail', { id: p.id, perk: m.perk }); return; }
     p.score -= price;
-    if (m.perk === 'upgrade') p.upgraded = true; else p.perks[m.perk] = true;
+    if (m.perk === 'upgrade') { p.upgraded = true; p.refill(); } else p.perks[m.perk] = true;   // arme améliorée : plus grand chargeur, rempli
     if (def.maxHp) { p.hp += def.maxHp - p.maxHp; p.maxHp = def.maxHp; }
     this.emit('perk', { id: p.id, perk: m.perk, x: p.x, y: p.y });
+  },
+  // munitions : plus chères pour une arme améliorée ; remplit chargeur et réserve (rien à acheter s'ils sont pleins)
+  ammoPrice(p) { return p.upgraded ? CFG.AMMO.priceUp : CFG.AMMO.price; },
+  buyAmmo(p, a) {
+    const price = this.ammoPrice(p);
+    if (p.ammoFull) return;
+    if (p.score < price) { this.emit('buyfail', { id: p.id, perk: 'ammo' }); return; }
+    p.score -= price; p.refill();
+    this.emit('ammo', { id: p.id, x: (a.tx + 0.5) * CFG.TILE, y: (a.ty + 0.5) * CFG.TILE });
   },
   // porte : payer fait s'effondrer la barricade ; la zone derrière s'ouvre (et les zombies peuvent y apparaître)
   openDoor(p, d) {
@@ -196,7 +209,7 @@ const Game = {
       Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: skull ? 'skull' : pool[Math.random() * pool.length | 0] });
       this.emit('boxopen', { id: p.id });
     } else if (B.state === 'ready' && B.owner === p.id) {
-      p.weapon = B.weapon; p.cd = 0; p.upgraded = false;   // l'amélioration reste sur l'ancienne arme : à racheter
+      p.setWeapon(B.weapon);   // munitions au max ; l'amélioration reste sur l'ancienne arme : à racheter
       Object.assign(B, { state: 'idle', t: 0, owner: null, weapon: null });
       this.emit('pickup', { id: p.id, weapon: p.weapon, x: p.x, y: p.y });
     }
@@ -432,6 +445,12 @@ const Game = {
         this.blood(e.x, e.y - 6, 20, CFG.BOX.color, false);
         break;
       }
+      case 'reload': if (e.id === this.localId) Sound.reload(CFG.RELOAD); break;
+      case 'dry': if (e.id === this.localId) Sound.dry(); break;
+      case 'ammo':   // bruit de culasse et éclats de laiton
+        if (e.id === this.localId) Sound.pickup();
+        this.blood(e.x, e.y - 4, 12, CFG.AMMO.color, false);
+        break;
       case 'buyfail':
         if (e.id === this.localId) { this.buy.box.classList.remove('nope'); void this.buy.box.offsetWidth; this.buy.box.classList.add('nope'); Sound.denied(); }
         break;
@@ -468,7 +487,15 @@ const Game = {
     this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= p.regenDelay);
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
-    this.hud.weapon.textContent = p.gun.name;
+    // arme en main : logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
+    const H = this.hud;
+    if (H.iconOf !== p.weapon) {
+      const g = H.icon.getContext('2d'); g.clearRect(0, 0, 20, 8); H.iconOf = p.weapon;
+      Sprites.gun((col, x, y, w, h) => { g.fillStyle = col; g.fillRect(1 + x, 4 + y, w, h); }, 0, null, false, p.weapon, 0);
+    }
+    H.weapon.classList.toggle('up', p.upgraded); H.weapon.classList.toggle('reloading', p.reload > 0);
+    H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;
+    H.mag.classList.toggle('low', p.mag <= p.magSize / 4); H.reserve.classList.toggle('low', !p.reserve);
     this.hpBar.style.setProperty('--seg', zombieDamage(this.wave) / p.maxHp * 100 + '%');   // un cran = un coup de zombie de cette manche
     // bouton posé sur la machine devant laquelle se tient le joueur, prix en dessous
     const m = p.alive && GameMap.nearMachine(p), B = this.buy, o = m && this.offer(p, m);
@@ -479,11 +506,12 @@ const Game = {
       // machine du bas : bouton sur son socle pour laisser voir la chambre lumineuse ;
       // boîte : au-dessus quand elle est fermée, sur sa face avant quand l'arme flotte au-dessus
       // porte : bouton au milieu de la barricade
-      const dy = m.perk === 'door' ? m.h * CFG.TILE / 2 : m.perk === 'upgrade' ? 22 : m.perk === 'box' ? (this.box.state === 'idle' ? -8 : 12) : 8;
+      const dy = m.perk === 'door' ? m.h * CFG.TILE / 2 : m.perk === 'upgrade' ? 22 : m.perk === 'box' ? (this.box.state === 'idle' ? -8 : 12) : m.perk === 'ammo' ? -6 : 8;
       B.box.style.top = r.top + (m.ty * CFG.TILE + dy - this.cam.y) * k + 'px';
       B.info.textContent = o.info; B.name.textContent = o.name; B.name.style.color = o.color; B.label.textContent = o.label;
       B.price.textContent = o.price ? o.price + ' pts' : '';
       B.box.classList.toggle('poor', !!o.price && p.score < o.price);
+      B.box.classList.toggle('off', !!o.off);   // « Munitions pleines » : rien à acheter, pas de bouton
     }
     // icônes des atouts possédés (l'arme améliorée n'est pas un atout : pas d'icône), centrées en bas ; la rangée est refaite à chaque achat
     const owned = Object.keys(p.perks), key = owned.join();

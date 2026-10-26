@@ -118,6 +118,17 @@ const Decor = {
     P('#c8c0a0', x + 27, y + 2, 2, 4); P('#3a3020', x + 27, y + 1, 1, 1);
     P('#4a0606', x + 10, y + 6, 3, 2); P('#5a0808', x + 20, y + 10, 2, 1);
   },
+  // boîte de munitions : caisse kaki ouverte, cartouches en laiton, bande de balles qui pend, douilles et sang autour
+  ammo(P, x, y) {
+    P('rgba(0,0,0,.4)', x + 2, y + 4, 14, 12);
+    P('#2c3018', x + 1, y + 3, 14, 12); P('#4c5430', x + 2, y + 4, 12, 10); P('#5f6a3c', x + 2, y + 4, 12, 1); P('#323820', x + 2, y + 13, 12, 1);
+    P('#3a4024', x + 1, y + 1, 14, 2); P('#5f6a3c', x + 1, y + 1, 14, 1);                       // couvercle relevé
+    P('#16140e', x + 3, y + 5, 10, 5);
+    for (let i = 0; i < 5; i++) { P('#a07a30', x + 3 + i * 2, y + 6, 1, 3); P('#e0b858', x + 3 + i * 2, y + 5, 1, 1); }   // cartouches
+    P('#bdb690', x + 4, y + 11, 8, 1);                                                                // marquage au pochoir
+    for (let i = 0; i < 4; i++) P(i % 2 ? '#a07a30' : '#6a5020', x + 14 + (i % 2), y + 7 + i * 2, 2, 2);   // bande qui pend
+    P('#a07a30', x, y + 14, 2, 1); P('#a07a30', x + 5, y + 15, 1, 1); P('#5a0808', x + 10, y + 14, 3, 1); P('#4a0606', x + 12, y + 15, 2, 1);
+  },
 
   // ---------- véhicules (x, y = coin haut-gauche de leur première case) ----------
   // char Tigre allemand éventré, canon de 88 qui pend, équipage mort sur la tourelle

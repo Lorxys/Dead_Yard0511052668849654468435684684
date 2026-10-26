@@ -26,6 +26,13 @@ const Sprites = {
       F('#ff8a1e', fx - 3, fy, 7, 1); F('#ff8a1e', fx, fy - 3, 1, 7); F('#ffe9a0', fx - 1, fy - 1, 3, 3);
     }
   },
+  // jauge de rechargement au-dessus du joueur (k = 0 à 1), avec une petite cartouche à gauche
+  reloadBar(c, x, y, k) {
+    x = Math.round(x); y = Math.round(y);
+    const F = rectFn(c, x, y);
+    F('#000', -9, -1, 19, 4); F('#2a1a0e', -6, 0, 15, 2); F('#d8b04a', -6, 0, Math.round(15 * k), 2);
+    F('#a07a30', -8, -1, 1, 4); F('#e0b858', -8, -1, 1, 1);
+  },
   // GI américain : veste M1941, casque M1, arme en main (o.weapon)
   soldier(c, x, y, a, o) {
     x = Math.round(x); y = Math.round(y);

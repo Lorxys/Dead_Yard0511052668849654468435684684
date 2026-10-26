@@ -58,8 +58,18 @@ body.playing #buy.show{display:flex}
 @media (pointer:coarse){#buy button small{display:none}}
 #buyPrice{font-size:8px;color:#ffd84a;padding:3px 5px;background:rgba(10,4,4,.85);box-shadow:0 0 0 2px #000;white-space:nowrap}
 #buyPrice:empty{display:none}
-/* arme en main, à côté des grenades */
-#weapon{font-size:8px;color:#c9b48a;letter-spacing:1px}
+/* arme en main, à côté des grenades : logo, balles dans le chargeur | balles en réserve */
+#weapon{display:flex;align-items:center;gap:6px;font-size:12px;color:#e9d9c4}
+#gunIcon{width:60px;height:24px;image-rendering:pixelated;filter:drop-shadow(2px 2px 0 #000)}
+#weapon.up #gunIcon{filter:drop-shadow(2px 2px 0 #000) drop-shadow(0 0 3px #b060ff)}
+#weapon i{width:2px;height:14px;background:#c9b48a;box-shadow:2px 2px 0 #000}
+#reserve{font-size:9px;color:#c9b48a}
+#weapon .low{color:#e0382a}
+#weapon.reloading #mag{animation:magBlink .5s steps(1) infinite}
+#weapon.reloading #gunIcon{animation:reloadTilt .5s steps(2) infinite}
+@keyframes magBlink{50%{opacity:0}}
+@keyframes reloadTilt{50%{transform:rotate(-14deg) translateY(2px)}}
+#buy.off button{display:none}
 #buy.poor button{filter:grayscale(.8) brightness(.6)}
 #buy.poor #buyPrice{color:#c41a14}
 

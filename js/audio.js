@@ -260,6 +260,21 @@ const Sound = {
     for (let i = 0, s = 0.12; i * s < dur - 0.3; i++) this.bell(out, t + 0.2 + i * s, midi(tune[i % tune.length]), 0.5, 0.15);
     [84, 88, 91, 96].forEach((n, i) => this.bell(out, t + dur + i * 0.05, midi(n), 1.6, 0.2));
   },
+  // rechargement (dur s) : chargeur vide qui tombe, nouveau chargeur enfoncé, culasse armée à la fin
+  reload(dur) {
+    if (!this.ctx) return;
+    const [t, out] = this.at({}, 0.6, 0.1);
+    this.clack(out, t + 0.1); this.noise(out, t + 0.2, 0.1, { f: 900, q: 2, v: 0.3 });
+    this.tone(out, t + 0.45, 260, 0.06, { type: 'square', to: 120, lp: 900, v: 0.2 });          // il tombe au sol
+    this.noise(out, t + dur * 0.55, 0.08, { f: 1500, q: 2, v: 0.35 }); this.clack(out, t + dur * 0.6);   // nouveau chargeur
+    this.clack(out, t + dur - 0.25); this.noise(out, t + dur - 0.2, 0.1, { f: 2400, q: 1.5, v: 0.4 }); this.clack(out, t + dur - 0.08);
+  },
+  // clic à vide : plus une balle
+  dry() {
+    if (!this.ctx) return;
+    const [t, out] = this.at({}, 0.4, 0.05);
+    this.clack(out, t);
+  },
   pickup() {
     if (!this.ctx) return;
     const [t, out] = this.at({}, 0.6, 0.1);
