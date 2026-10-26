@@ -32,8 +32,14 @@ const Game = {
     document.getElementById('restart').onclick = () => this.reset();
     document.getElementById('toMenu').onclick = () => this.toWorld();
     // menu : Jouer ouvre la carte du monde, où l'on choisit le front puis la map
-    WorldScene.init((front, map) => { this.front = front; this.mapId = map; WorldScene.hide(); this.reset(); }, () => this.toMenu());
-    document.getElementById('play').onclick = () => { this.lockLandscape(); this.toWorld(); };
+    // Jouer -> choix du type de partie : carte du monde ou cartes personnalisées (écran encore vide)
+    const screen = id => ['menu', 'mode', 'custom'].forEach(s => document.getElementById(s).classList.toggle('show', s === id));
+    WorldScene.init((front, map) => { this.front = front; this.mapId = map; WorldScene.hide(); this.reset(); }, () => { this.toMenu(); screen('mode'); });
+    document.getElementById('play').onclick = () => { this.lockLandscape(); screen('mode'); };
+    document.getElementById('toWorld').onclick = () => this.toWorld();
+    document.getElementById('toCustom').onclick = () => screen('custom');
+    document.getElementById('modeBack').onclick = () => screen('menu');
+    document.getElementById('customBack').onclick = () => screen('mode');
     // réglages en jeu : pause, puis reprendre ou quitter vers la carte du monde (Échap ou P au clavier)
     document.getElementById('pauseBtn').onclick = () => this.pause(true);
     document.getElementById('resume').onclick = () => this.pause(false);
@@ -101,7 +107,7 @@ const Game = {
     Sound.menu(true); Sound.setNear(null);
     for (const k in this.hud) this.hud[k].textContent = '';
     document.body.classList.remove('playing');
-    ['over', 'pause', 'menu'].forEach(id => document.getElementById(id).classList.remove('show'));
+    ['over', 'pause', 'menu', 'mode', 'custom'].forEach(id => document.getElementById(id).classList.remove('show'));
     this.resize();
   },
   toMenu() { WorldScene.hide(); this.leaveGame('menu'); document.getElementById('menu').classList.add('show'); },

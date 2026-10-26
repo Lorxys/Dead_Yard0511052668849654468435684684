@@ -170,3 +170,12 @@ body.playing #hud{padding-right:calc(env(safe-area-inset-right,0px) + 54px)}
 /* confirmation avant de quitter : avertissement en haut, Confirmer / Retour */
 #pause .warn{color:#e8dcc0;font-size:clamp(9px,2.2vw,13px);line-height:2.2;text-shadow:2px 2px 0 #000}
 #pause:not(.ask) .warn,#pause:not(.ask) .confirm,#pause.ask h1,#pause.ask .actions:not(.confirm){display:none}
+
+/* ---- Écrans du menu (choix du type de partie, cartes personnalisées) : sur le décor animé du menu ---- */
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:16px;text-align:center;
+  background:radial-gradient(ellipse 60% 50% at center,rgba(0,0,0,.65),rgba(0,0,0,.25) 80%)}
+.screen.show{display:flex}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(rgba(0,0,0,.18) 0 2px,transparent 2px 4px)}
+.screen .title{font-size:clamp(11px,2.8vw,18px);letter-spacing:3px;text-transform:uppercase;color:#c41a14;text-shadow:2px 2px 0 #000,0 0 12px rgba(200,0,0,.5)}
+.screen button:not(.small){min-width:min(80vw,420px)}
+.screen .small{position:absolute;z-index:2;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 10px);margin:0}
