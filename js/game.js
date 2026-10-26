@@ -281,11 +281,13 @@ const Game = {
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.d += Math.hypot(b.vx, b.vy) * dt;
       if (b.life <= 0) return false;
       if (GameMap.solidAt(b.x, b.y)) { this.emit('impact', { x: b.x, y: b.y }); return false; }
-      for (const z of this.zs) if (Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
+      for (const z of this.zs) if (z.hp > 0 && !b.hits?.includes(z.id) && Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
         moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
         this.emit('hit', { x: b.x, y: b.y, zx: z.x, zy: z.y });
         this.damageZombie(z, this.bulletDamage(b), b.owner);   // points : chaque balle qui touche + bonus au coup fatal
-        return false;
+        // balle perforante (sniper) : traverse le zombie et continue sur les suivants, pierce zombies au plus
+        if (!b.pierce) return false;
+        b.pierce--; (b.hits = b.hits || []).push(z.id);
       }
       return true;
     });
