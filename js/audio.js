@@ -101,16 +101,34 @@ const Sound = {
   // coup de feu par arme : [fréquence de la détonation, durée, fréquence du « corps », volume, réverbération]
   GUN: {
     rifle: [1300, 0.16, 110, 0.5, 0.35], pistol: [1900, 0.1, 150, 0.42, 0.25], smg: [2100, 0.07, 120, 0.3, 0.18],
-    ar: [1500, 0.1, 100, 0.42, 0.3], shotgun: [650, 0.3, 70, 0.7, 0.5], sniper: [2600, 0.22, 80, 0.75, 0.9]
+    ar: [1500, 0.1, 100, 0.42, 0.3], shotgun: [650, 0.3, 70, 0.7, 0.5], sniper: [2600, 0.22, 80, 0.75, 0.9],
+    lmg: [1200, 0.09, 90, 0.4, 0.25]
   },
+  // w = arme (ou famille) : le son dépend de sa famille (cls), avec pompe ou culasse après le tir si l'arme en a une
   shot(w, o = {}) {
     if (!this.ctx) return;
-    const [f, d, body, v, wet] = this.GUN[w] || this.GUN.rifle, [t, out] = this.at(o, v, wet);
+    const W = CFG.WEAPONS[w] || {}, cls = W.cls || w;
+    if (cls === 'ray') return this.rayShot(o);
+    const [f, d, body, v, wet] = this.GUN[cls] || this.GUN.rifle, [t, out] = this.at(o, v, wet);
     this.noise(out, t, d, { f: f * (0.9 + Math.random() * 0.2), q: 0.6 });
     this.noise(out, t, d * 0.4, { type: 'highpass', f: 4000, v: 0.5 });
     this.tone(out, t, body * 2, d * 1.4, { to: body * 0.5, v: 0.8 });
-    if (w === 'shotgun') this.clack(out, t + 0.38);                              // pompe qu'on réarme
-    if (w === 'sniper') { this.clack(out, t + 0.45); this.clack(out, t + 0.62); } // culasse
+    if (W.pump) this.clack(out, t + 0.38);                                       // pompe qu'on réarme
+    if (W.bolt) { this.clack(out, t + 0.45); this.clack(out, t + 0.62); }         // culasse
+  },
+  // pistolet à rayons : « piou » électrique qui descend, et grésillement
+  rayShot(o = {}) {
+    const [t, out] = this.at(o, 0.35, 0.4);
+    this.tone(out, t, 1800, 0.18, { type: 'square', to: 300, lp: 3000, v: 0.4 });
+    this.tone(out, t, 1210, 0.14, { type: 'sawtooth', to: 220, lp: 2500, v: 0.25 });
+    this.noise(out, t, 0.06, { f: 5000, q: 2, v: 0.2 });
+  },
+  // impact du rayon : petite explosion électrique
+  zap(o = {}) {
+    if (!this.ctx) return;
+    const [t, out] = this.at(o, 0.4, 0.4);
+    this.noise(out, t, 0.25, { type: 'lowpass', f: 1800, fEnd: 200 });
+    this.tone(out, t, 220, 0.2, { type: 'square', to: 60, lp: 900, v: 0.3 });
   },
   clack(out, t) { this.noise(out, t, 0.03, { f: 3200, q: 4, v: 0.35 }); this.tone(out, t, 900, 0.04, { type: 'square', v: 0.12 }); },
   explosion(o = {}) {

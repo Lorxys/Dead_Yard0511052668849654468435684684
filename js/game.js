@@ -181,16 +181,19 @@ const Game = {
     const T = CFG.TILE, zones = GameMap.unlock(d);
     this.emit('door', { id: p.id, x: (d.tx + d.w / 2) * T, y: (d.ty + d.h / 2) * T, w: d.w * T, h: d.h * T, zones });
   },
+  // armes de la boîte mystère : toutes sauf celle du départ
+  boxWeapons() { return Object.keys(CFG.WEAPONS).filter(w => w !== CFG.PLAYER.weapon); },
   // boîte mystère : payer lance le tirage ; une fois l'arme sortie, seul celui qui a payé peut la prendre
   useBox(p) {
     const B = this.box, C = CFG.BOX;
     if (B.state === 'idle') {
       if (p.score < C.price) { this.emit('buyfail', { id: p.id, perk: 'box' }); return; }
-      const pool = C.weapons.filter(w => w !== p.weapon);   // jamais l'arme qu'on a déjà en main
+      // jamais l'arme qu'on a déjà en main ; tirage pondéré (les armes rares sortent moins souvent)
+      const pool = this.boxWeapons().filter(w => w !== p.weapon), pick = r => pool.find(w => (r -= CFG.WEAPONS[w].rare || 1) < 0) || pool[0];
       // tête de mort : décidée à l'achat, montrée seulement à la fin du tirage (jamais pendant le défilement des armes)
       const S = C.skull, skull = GameMap.boxSpots.length > 1 && B.uses >= S.after && Math.random() < S.chance + S.step * (B.uses - S.after);
       p.score -= C.price; B.uses++;
-      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: skull ? 'skull' : pool[Math.random() * pool.length | 0] });
+      Object.assign(B, { state: 'rolling', t: 0, owner: p.id, weapon: skull ? 'skull' : pick(Math.random() * pool.reduce((s, w) => s + (CFG.WEAPONS[w].rare || 1), 0)) });
       this.emit('boxopen', { id: p.id });
     } else if (B.state === 'ready' && B.owner === p.id) {
       p.setWeapon(B.weapon);   // munitions au max ; l'amélioration reste sur l'ancienne arme : à racheter
@@ -220,6 +223,12 @@ const Game = {
     }
   },
   // dégâts d'une balle selon la distance parcourue (baisse progressive entre fall[0] et fall[1])
+  // rayon qui explose : blesse les autres zombies autour du point d'impact (jamais les joueurs)
+  splash(b, hit) {
+    const S = b.splash;
+    for (const z of this.zs) if (z !== hit && z.hp > 0 && Math.hypot(z.x - b.x, z.y - 3 - b.y) < S.r) this.damageZombie(z, S.dmg * b.k, b.owner);
+    this.emit('zap', { x: b.x, y: b.y, r: S.r, up: b.up });
+  },
   bulletDamage(b) {
     if (!b.fall) return b.dmg;
     const k = Math.min(1, Math.max(0, (b.d - b.fall[0]) / (b.fall[1] - b.fall[0])));
@@ -280,11 +289,12 @@ const Game = {
     this.bullets = this.bullets.filter(b => {
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.d += Math.hypot(b.vx, b.vy) * dt;
       if (b.life <= 0) return false;
-      if (GameMap.solidAt(b.x, b.y)) { this.emit('impact', { x: b.x, y: b.y }); return false; }
+      if (GameMap.solidAt(b.x, b.y)) { if (b.splash) this.splash(b, null); else this.emit('impact', { x: b.x, y: b.y }); return false; }
       for (const z of this.zs) if (z.hp > 0 && !b.hits?.includes(z.id) && Math.hypot(z.x - b.x, z.y - 3 - b.y) < 7) {
         moveEntity(z, b.vx * 0.02, b.vy * 0.02);   // recul sans traverser les obstacles
         this.emit('hit', { x: b.x, y: b.y, zx: z.x, zy: z.y });
         this.damageZombie(z, this.bulletDamage(b), b.owner);   // points : chaque balle qui touche + bonus au coup fatal
+        if (b.splash) { this.splash(b, z); return false; }
         // balle perforante (sniper) : traverse le zombie et continue sur les suivants, pierce zombies au plus
         if (!b.pierce) return false;
         b.pierce--; (b.hits = b.hits || []).push(z.id);
@@ -349,11 +359,19 @@ const Game = {
     switch (e.type) {
       case 'shoot': {   // coup de feu + douille éjectée sur le côté, elle reste au sol
         Sound.shot(e.w, this.heard(e.x, e.y));
+        if (CFG.WEAPONS[e.w].cls === 'ray') break;   // pas de douille pour le pistolet à rayons
         const a = e.a + Math.PI / 2 + (Math.random() - 0.5);
         this.fx.push({ x: e.x, y: e.y - 3, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.25, col: '#c09a40', s: 1, stain: true });
         break;
       }
       case 'impact': this.blood(e.x, e.y, 4, '#8a7a5a', false); break;
+      case 'zap': {   // explosion du rayon : éclats verts (rouges si améliorée), lueur, brûlure au sol
+        const col = e.up ? '#ff4a3a' : '#3aff6a';
+        this.blood(e.x, e.y, 14, col, false); this.blood(e.x, e.y, 6, '#ffffff', false);
+        this.lights.push({ x: e.x, y: e.y, t: 0.25 }); GameMap.scorch(e.x, e.y, 5);
+        Sound.zap(this.heard(e.x, e.y));
+        break;
+      }
       case 'hit': this.blood(e.x, e.y, 10); GameMap.splat(e.zx, e.zy + 3, 3); break;
       case 'kill':
         this.blood(e.x, e.y - 4, 30); this.blood(e.x, e.y - 4, 5, '#3a0404');
@@ -521,7 +539,7 @@ const Game = {
   boxView() {
     const B = this.box, C = CFG.BOX;
     if (B.state === 'rolling') {
-      const phase = 14 * B.t - 1.5 * B.t * B.t, w = B.t > C.roll - 0.5 ? B.weapon : C.weapons[Math.floor(phase) % C.weapons.length];
+      const phase = 14 * B.t - 1.5 * B.t * B.t, W = this.boxWeapons(), w = B.t > C.roll - 0.5 ? B.weapon : W[Math.floor(phase) % W.length];
       return { open: true, weapon: w, rise: Math.min(1, B.t / 0.8) };
     }
     if (B.state === 'ready') return { open: true, weapon: B.weapon, rise: 1, hide: B.t > C.keep - 3 && Math.floor(B.t * 8) % 2 === 1 };
@@ -580,6 +598,13 @@ const Game = {
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));
     this.bullets.forEach(b => {
       const bx = Math.round(b.x - cam.x), by = Math.round(b.y - cam.y), n = Math.hypot(b.vx, b.vy);
+      if (b.ray) {   // rayon : boule d'énergie verte (rouge si améliorée) avec une traînée qui s'estompe
+        const C = b.up ? ['#ff4a3a', '#ffd0c0', 'rgba(255,60,40,'] : ['#3aff6a', '#e0ffe8', 'rgba(60,255,110,'];
+        for (let i = 1; i <= 6; i++) { c.fillStyle = C[2] + (0.7 - i * 0.1) + ')'; c.fillRect(Math.round(bx - b.vx / n * i * 2) - 1, Math.round(by - b.vy / n * i * 2) - 1, 2, 2); }
+        c.fillStyle = C[0]; c.fillRect(bx - 2, by - 1, 4, 3); c.fillRect(bx - 1, by - 2, 3, 5);
+        c.fillStyle = C[1]; c.fillRect(bx - 1, by - 1, 2, 2);
+        return;
+      }
       const up = b.up;   // balles de l'arme améliorée : traçantes violettes ; traînée plus longue pour les balles rapides (sniper)
       c.fillStyle = up ? '#b060ff' : '#ff8a2a';
       for (let i = 1; i <= (n > 300 ? 9 : 4); i++) c.fillRect(Math.round(bx - b.vx / n * i), Math.round(by - b.vy / n * i), 1, 1);
@@ -639,7 +664,7 @@ const Game = {
         if (!pass && p.upgraded) Sprites.gun((col, x, y, w, h) => { c.fillStyle = '#b060ff'; c.fillRect(gx + x * G - 2, gy + y * G - 2, w * G + 4, h * G + 4); }, 0, null, false, p.weapon, 0);
         Sprites.gun((col, x, y, w, h) => px(gx + x * G, gy + y * G, w * G, h * G, col, pass), 0, null, false, p.weapon, 0);
       }
-      let x = x0 + 41;
+      let x = x0 + 43;
       if (!blink) text(p.mag, x, y0, 2, magCol, pass);
       x += String(p.mag).length * 8 + 2;
       px(x, y0, 1, 10, '#fff', pass);

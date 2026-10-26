@@ -12,16 +12,54 @@ const CFG = {
   // (baisse progressive entre fall[0] et fall[1]), pellets = plombs par tir, spread = dispersion (rad),
   // speed = vitesse des balles (px/s), range = durée de vie des balles (s), mag = balles par chargeur, reserve = balles en réserve
   // (un tir de fusil à pompe = une cartouche), pierce = nombre de zombies que la balle traverse avant de s'arrêter
+  // cls = famille (son de tir), pump / bolt = bruit de pompe / de culasse après le tir, slow = vitesse du joueur qui la porte
+  // (mitrailleuses lourdes), splash = explosion à l'impact { r: rayon px, dmg } (arme à rayons), rare = chance à la boîte (1 = normale)
+  // équilibrage : dégâts par seconde de près ~6-7 (pistolets), ~7-8 (fusils d'assaut), ~8 (pistolets mitrailleurs, qui faiblissent
+  // de loin), ~12-15 (fusils à pompe, de très près), ~8 + traversée (snipers), ~11-13 (mitrailleuses, mais on marche moins vite)
   WEAPONS: {
-    rifle:   { name: 'M1 Garand',  mag: 14, reserve: 140, rate: 0.24, dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
-    pistol:  { name: 'Colt M1911', mag: 18, reserve: 96,  rate: 0.28, dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
-    smg:     { name: 'Thompson',   mag: 40, reserve: 180, rate: 0.18, dmg: 1.5, far: 0.4, fall: [40, 110], speed: 230, range: 0.6, spread: 0.16 },
-    ar:      { name: 'StG 44',     mag: 50, reserve: 240, rate: 0.176, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
-    shotgun: { name: 'Trench Gun', mag: 10, reserve: 90,  rate: 0.8,  dmg: 1.6, far: 0.2, fall: [20, 75], pellets: 7, speed: 220, range: 0.38, spread: 0.55 },
-    sniper:  { name: 'Kar98k',     mag: 8,  reserve: 120, rate: 1.2,  dmg: 9,   pierce: 4, speed: 420, range: 0.6,  spread: 0 }
+    rifle:    { cls: 'rifle',   name: 'M1 Garand',      mag: 14, reserve: 140, rate: 0.24,  dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
+    // pistolets
+    pistol:   { cls: 'pistol',  name: 'Colt M1911',     mag: 18, reserve: 96,  rate: 0.28,  dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
+    luger:    { cls: 'pistol',  name: 'Luger P08',      mag: 14, reserve: 98,  rate: 0.25,  dmg: 1.6, speed: 225, range: 0.65, spread: 0.05 },
+    revolver: { cls: 'pistol',  name: 'Webley Mk VI',   mag: 6,  reserve: 80,  rate: 0.5,   dmg: 3.5, pierce: 1, speed: 240, range: 0.7, spread: 0.03 },
+    hipower:  { cls: 'pistol',  name: 'Browning HP',    mag: 13, reserve: 104, rate: 0.23,  dmg: 1.5, speed: 225, range: 0.65, spread: 0.06 },
+    // pistolets mitrailleurs
+    smg:      { cls: 'smg',     name: 'Thompson',       mag: 40, reserve: 180, rate: 0.18,  dmg: 1.5,  far: 0.4,  fall: [40, 110], speed: 230, range: 0.6, spread: 0.16 },
+    mp40:     { cls: 'smg',     name: 'MP 40',          mag: 35, reserve: 180, rate: 0.17,  dmg: 1.4,  far: 0.4,  fall: [40, 110], speed: 230, range: 0.6, spread: 0.13 },
+    ppsh:     { cls: 'smg',     name: 'PPSh-41',        mag: 40, reserve: 180, rate: 0.12,  dmg: 1,    far: 0.3,  fall: [35, 100], speed: 230, range: 0.55, spread: 0.2 },
+    sten:     { cls: 'smg',     name: 'Sten Mk II',     mag: 35, reserve: 180, rate: 0.16,  dmg: 1.25, far: 0.35, fall: [40, 105], speed: 225, range: 0.6, spread: 0.17 },
+    grease:   { cls: 'smg',     name: 'M3 Grease Gun',  mag: 35, reserve: 180, rate: 0.2,   dmg: 1.7,  far: 0.45, fall: [40, 110], speed: 225, range: 0.6, spread: 0.12 },
+    pps:      { cls: 'smg',     name: 'PPS-43',         mag: 35, reserve: 180, rate: 0.15,  dmg: 1.2,  far: 0.35, fall: [40, 110], speed: 230, range: 0.6, spread: 0.15 },
+    mab38:    { cls: 'smg',     name: 'Beretta MAB 38', mag: 40, reserve: 180, rate: 0.16,  dmg: 1.35, far: 0.45, fall: [45, 120], speed: 240, range: 0.65, spread: 0.11 },
+    // fusils d'assaut
+    ar:       { cls: 'ar',      name: 'StG 44',         mag: 50, reserve: 240, rate: 0.176, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
+    bar:      { cls: 'ar',      name: 'BAR M1918',      mag: 30, reserve: 180, rate: 0.2,   dmg: 1.6, speed: 265, range: 0.85, spread: 0.08 },
+    fg42:     { cls: 'ar',      name: 'FG 42',          mag: 30, reserve: 180, rate: 0.15,  dmg: 1.2, speed: 260, range: 0.85, spread: 0.09 },
+    carbine:  { cls: 'ar',      name: 'M2 Carbine',     mag: 30, reserve: 180, rate: 0.14,  dmg: 0.95, speed: 250, range: 0.75, spread: 0.08 },
+    avs:      { cls: 'ar',      name: 'AVS-36',         mag: 40, reserve: 200, rate: 0.17,  dmg: 1.2, speed: 260, range: 0.8,  spread: 0.1 },
+    g43:      { cls: 'ar',      name: 'Gewehr 43',      mag: 30, reserve: 180, rate: 0.26,  dmg: 1.9, speed: 270, range: 0.9,  spread: 0.05 },
+    svt:      { cls: 'ar',      name: 'SVT-40',         mag: 40, reserve: 200, rate: 0.24,  dmg: 1.7, speed: 270, range: 0.9,  spread: 0.05 },
+    mkb42:    { cls: 'ar',      name: 'MKb 42',         mag: 40, reserve: 200, rate: 0.16,  dmg: 1.15, speed: 255, range: 0.8, spread: 0.09 },
+    // fusils à pompe
+    shotgun:  { cls: 'shotgun', name: 'Trench Gun',     mag: 10, reserve: 90,  rate: 0.8,   dmg: 1.6, far: 0.2, fall: [20, 75], pellets: 7, pump: true, speed: 220, range: 0.38, spread: 0.55 },
+    ithaca:   { cls: 'shotgun', name: 'Ithaca 37',      mag: 8,  reserve: 80,  rate: 0.7,   dmg: 1.4, far: 0.2, fall: [20, 75], pellets: 7, pump: true, speed: 220, range: 0.38, spread: 0.5 },
+    double:   { cls: 'shotgun', name: 'Double canon',   mag: 2,  reserve: 50,  rate: 0.35,  dmg: 2,   far: 0.3, fall: [20, 70], pellets: 9, speed: 220, range: 0.35, spread: 0.65 },
+    auto5:    { cls: 'shotgun', name: 'Browning Auto-5', mag: 12, reserve: 98, rate: 0.45,  dmg: 1,   far: 0.15, fall: [20, 70], pellets: 7, speed: 220, range: 0.36, spread: 0.55 },
+    // fusils de précision : la balle traverse les zombies
+    sniper:   { cls: 'sniper',  name: 'Kar98k',         mag: 8,  reserve: 120, rate: 1.2,   dmg: 9,   pierce: 4, bolt: true, speed: 420, range: 0.6, spread: 0 },
+    mosin:    { cls: 'sniper',  name: 'Mosin-Nagant',   mag: 5,  reserve: 80,  rate: 1.3,   dmg: 11,  pierce: 5, bolt: true, speed: 430, range: 0.65, spread: 0 },
+    enfield:  { cls: 'sniper',  name: 'Lee-Enfield',    mag: 10, reserve: 80,  rate: 1,     dmg: 8,   pierce: 3, bolt: true, speed: 420, range: 0.6, spread: 0 },
+    m1d:      { cls: 'sniper',  name: 'M1D Garand',     mag: 20, reserve: 120, rate: 0.55,  dmg: 5,   pierce: 2, speed: 400, range: 0.6, spread: 0.01 },
+    // mitrailleuses : très grosse puissance de feu, mais on marche moins vite
+    mg42:     { cls: 'lmg',     name: 'MG 42',          mag: 75, reserve: 225, rate: 0.07,  dmg: 0.9, slow: 0.8,  speed: 270, range: 0.85, spread: 0.13 },
+    mg34:     { cls: 'lmg',     name: 'MG 34',          mag: 65, reserve: 210, rate: 0.09,  dmg: 1,   slow: 0.82, speed: 270, range: 0.85, spread: 0.11 },
+    m1919:    { cls: 'lmg',     name: 'Browning M1919', mag: 75, reserve: 225, rate: 0.1,   dmg: 1.2, slow: 0.78, speed: 265, range: 0.85, spread: 0.1 },
+    dp28:     { cls: 'lmg',     name: 'DP-28',          mag: 65, reserve: 210, rate: 0.12,  dmg: 1.35, slow: 0.85, speed: 265, range: 0.85, spread: 0.09 },
+    // arme spéciale : rayon vert qui explose à l'impact (blesse les zombies autour), rare à la boîte
+    ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.35, speed: 190, range: 1, spread: 0.02 }
   },
-  // boîte mystère : arme au hasard (parmi weapons) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
-  BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12, weapons: ['pistol', 'smg', 'ar', 'shotgun', 'sniper'],
+  // boîte mystère : arme au hasard (toutes sauf celle de départ, rare = moins de chances) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
+  BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12,
     // tête de mort (seulement sur les maps à plusieurs emplacements) : impossible pendant les `after` premiers tirages sur un
     // emplacement, puis `chance` au tirage suivant et +`step` à chaque tirage ; le crâne reste `show` s, puis la boîte s'envole
     // en `fly` s et réapparaît sur un autre emplacement (compteur de tirages remis à 0). Le joueur est remboursé.

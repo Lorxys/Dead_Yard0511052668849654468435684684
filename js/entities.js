@@ -24,7 +24,7 @@ class Player {
   // nouvelle arme en main (boîte mystère) : pas améliorée, munitions au max
   setWeapon(w) { this.weapon = w; this.upgraded = false; this.cd = 0; this.refill(); }
   // caractéristiques modifiées par les atouts achetés
-  get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
+  get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1) * (this.gun.slow || 1); }   // mitrailleuse : plus lent
   get gun() { return CFG.WEAPONS[this.weapon]; }   // arme en main
   get fireRate() { return this.gun.rate / (this.perks.fire ? CFG.PERKS.fire.mult : 1); }
   get reloadTime() { return this.perks.reload ? CFG.PERKS.reload.time : CFG.RELOAD; }
@@ -65,7 +65,7 @@ class Player {
       const g = this.gun, v = g.speed, k = this.damage;
       for (let i = 0; i < (g.pellets || 1); i++) {
         const a = this.a + (Math.random() - 0.5) * g.spread;
-        world.bullets.push({ id: nextId++, owner: this.id, up: this.upgraded, pierce: g.pierce || 0, dmg: g.dmg * k, far: (g.far ?? g.dmg) * k, fall: g.fall, d: 0,
+        world.bullets.push({ id: nextId++, owner: this.id, up: this.upgraded, pierce: g.pierce || 0, ray: g.cls === 'ray', splash: g.splash, k, dmg: g.dmg * k, far: (g.far ?? g.dmg) * k, fall: g.fall, d: 0,
           x: this.x + Math.cos(a) * 14, y: this.y + Math.sin(a) * 14 - 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: g.range });
       }
       world.emit('shoot', { id: this.id, x: this.x, y: this.y, a: this.a, w: this.weapon });
