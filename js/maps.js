@@ -3,7 +3,7 @@
 //   .  boue   :  pavés / route   ,  herbe morte                                 (sol, on y marche)
 //   #  mur (sacs de sable ou ruines selon la map)   S sacs de sable   C caisse   X hérisson tchèque
 //   W  barbelés   T arbre mort   t tombe   R gravats   O fontaine (2x2 cases)
-//   h r s f  machines à atout (Blindage, Second Souffle, Pied Léger, Double Détente) : mur au-dessus, sol libre en dessous
+//   h r s f k  machines à atout (Blindage, Second Souffle, Pied Léger, Double Détente, Main Leste) : mur au-dessus, sol libre en dessous
 //   A  boîte de munitions (1 case, utilisable de tous les côtés)
 //   UU forge d'amélioration (on s'en sert par le haut)
 //   BB emplacement de la boîte mystère : avec plusieurs emplacements, la boîte est sur un seul à la fois (au départ le plus
@@ -17,7 +17,7 @@ const MAPS = {
     name: "No Man's Land", info: 'Nuit · boue · tranchées', wall: 'sandbags', seed: 7,
     rows: [
       '########################',
-      '#....h...r....s...f...A#',
+      '#k...h...r....s...f...A#',
       '#......................#',
       '#......................#',
       '#......................#',
@@ -84,7 +84,7 @@ const MAPS = {
       '#T...........R..............:::.....RR..T...X.........WWWW.#',
       '#...........................:::............................#',
       '#######444##################111##################555########',
-      '#.................#.........:::..........#A,,,,,,,,,,,,,,,,#',
+      '#.................#.........:::..........#A,,,,,,,,,,,k,,,,#',
       '#.................#.##RR##..:::...######.#,T,,,,,,,,,,,,,,T#',
       '#..#R###R##.......#.######..:::...######.#,,,,,,,,,,,,,,,,,#',
       '#..#A.r...#..T....#.######..:::...######.#,,t,,t,,t,,t,,t,,#',

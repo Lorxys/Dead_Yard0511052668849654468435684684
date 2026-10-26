@@ -124,12 +124,13 @@ const Sprites = {
     c.fillStyle = '#ff3020'; c.fillRect(Math.round(x), Math.round(y) - 5 - Math.round(z), 1, 1);
   },
 
-  // icônes des atouts (7x7) : cœur, croix de soin, double chevron, deux balles
+  // icônes des atouts (7x7) : cœur, croix de soin, double chevron, deux balles, éclair
   PERK_ICONS: {
     health: ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
     regen:  ['..XXX..', '..XXX..', 'XXXXXXX', 'XXXXXXX', 'XXXXXXX', '..XXX..', '..XXX..'],
     speed:  ['X..X...', '.X..X..', '..X..X.', '...X..X', '..X..X.', '.X..X..', 'X..X...'],
     fire:   ['.X...X.', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX', 'XXX.XXX'],
+    reload: ['....XX.', '...XX..', '..XX...', '.XXXXX.', '...XX..', '..XX...', '.XX....'],
     upgrade: ['.XXXXX.', 'XXXXXXX', 'X..X..X', 'XXXXXXX', '.XX.XX.', '.XXXXX.', '.X.X.X.']   // crâne : arme améliorée
   },
   // teintes des machines : corps, ombre, reflet, lueur (r,g,b)
@@ -138,6 +139,7 @@ const Sprites = {
     regen:  ['#1e4a9a', '#10285a', '#3a78d8', '60,130,255'],
     speed:  ['#b85a14', '#6e3008', '#ff8a2a', '255,140,40'],
     fire:   ['#b89a14', '#6e5a08', '#ffd84a', '255,215,60'],
+    reload: ['#2a8a2e', '#124a16', '#5ae04a', '80,230,70'],
     upgrade: ['#6a2aa8', '#2e1050', '#b060ff', '170,80,255']
   },
   perkIcon(c, x, y, perk, col) {

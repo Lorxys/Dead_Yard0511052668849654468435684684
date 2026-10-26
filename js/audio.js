@@ -219,6 +219,7 @@ const Sound = {
     regen:   { base: 60, step: 0.24, wave: 'triangle', notes: [0, 4, 7, 12, 7, 4, 2, 5, 9, 14, 9, 5, 0, null, null, null] },
     speed:   { base: 64, step: 0.13, wave: 'square',   notes: [0, 2, 4, 7, 4, 2, 0, 2, 4, 7, 9, 7, 4, 2, 0, null] },
     fire:    { base: 59, step: 0.19, wave: 'sawtooth', notes: [0, null, 7, null, 5, 7, null, 3, 0, null, 10, null, 7, 5, 3, null] },
+    reload:  { base: 62, step: 0.15, wave: 'square',   notes: [0, 5, 0, 7, null, 7, 5, 3, 0, 3, 5, 10, null, 7, 12, null] },
     upgrade: { base: 45, step: 0.28, wave: 'triangle', notes: [0, 3, 7, 12, 11, 7, 3, 0, 1, 5, 8, 13, 12, 8, 5, 1] }
   },
   setNear(key) {

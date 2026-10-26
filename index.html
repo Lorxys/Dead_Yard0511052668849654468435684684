@@ -8,12 +8,12 @@
 <meta name="theme-color" content="#050203">
 <title>Dead Yard</title>
 <!-- Version du jeu : 1.00.<nombre de push>. À augmenter à chaque push (le ?v= force le téléchargement des nouveaux fichiers) -->
-<link rel="manifest" href="manifest.json?v=1.00.40">
+<link rel="manifest" href="manifest.json?v=1.00.41">
 <!-- icône de l'écran d'accueil (iPhone) et de l'onglet -->
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=1.00.40">
-<link rel="icon" type="image/png" href="icons/icon-192.png?v=1.00.40">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=1.00.41">
+<link rel="icon" type="image/png" href="icons/icon-192.png?v=1.00.41">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-<link rel="stylesheet" href="css/style.css?v=1.00.40">
+<link rel="stylesheet" href="css/style.css?v=1.00.41">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -21,7 +21,8 @@
 <div class="stick" id="sL"><i></i></div>
 <div class="stick" id="sR"><i></i></div>
 <div id="sG"><i></i><b id="nadeCount"></b></div>
-<div id="hud"><span class="left"><span id="hpbar"><b class="ghost"></b><b class="fill"></b><i></i><span id="hptext"></span></span><span id="nades"></span><span id="weapon"><canvas id="gunIcon" width="20" height="8"></canvas><b id="mag"></b><i></i><b id="reserve"></b></span></span><span id="wave"></span><span id="score"></span></div>
+<div id="hud"><span class="left"><span id="hpbar"><b class="ghost"></b><b class="fill"></b><i></i><span id="hptext"></span></span><span id="nades"></span></span><span id="wave"></span><span id="score"></span></div>
+<div id="weapon"><b id="gunName"></b><span class="ammo"><canvas id="gunIcon" width="20" height="8"></canvas><b id="mag"></b><i></i><b id="reserve"></b></span></div>
 <div id="perks"></div>
 <div id="banner"></div>
 <div id="buy">
@@ -35,7 +36,7 @@
   <h1>Dead Yard<i class="drip" style="--l:6%;--w:5px;--h:34px;--s:5s;--d:.4s"></i><i class="drip" style="--l:21%;--w:3px;--h:20px;--s:4s;--d:2s"></i><i class="drip" style="--l:37%;--w:6px;--h:48px;--s:6s;--d:0s"></i><i class="drip" style="--l:62%;--w:4px;--h:26px;--s:4.5s;--d:1.2s"></i><i class="drip" style="--l:79%;--w:6px;--h:40px;--s:5.5s;--d:3s"></i><i class="drip" style="--l:92%;--w:3px;--h:18px;--s:3.5s;--d:.8s"></i></h1>
   <button id="play">Jouer<i class="drip" style="--l:8%;--w:6px;--h:38px;--s:4s;--d:0s"></i><i class="drip" style="--l:24%;--w:4px;--h:22px;--s:3.5s;--d:1.4s"></i><i class="drip" style="--l:41%;--w:7px;--h:52px;--s:5s;--d:.7s"></i><i class="drip" style="--l:58%;--w:3px;--h:18px;--s:3s;--d:2.1s"></i><i class="drip" style="--l:72%;--w:5px;--h:34px;--s:4.5s;--d:.3s"></i><i class="drip" style="--l:89%;--w:6px;--h:44px;--s:5.5s;--d:1.8s"></i></button>
   <p class="tag">Le Reich a réveillé ses morts.<br>Tiens la position, soldat.</p>
-  <p class="version">v1.00.40</p>
+  <p class="version">v1.00.41</p>
 </div>
 <div id="mode" class="screen">
   <h2 class="title">Choisis ta partie</h2>
@@ -84,17 +85,17 @@
   <div class="phone"><i></i></div>
   <p>Tourne ton appareil<br>à l'horizontale</p>
 </div>
-<script src="js/config.js?v=1.00.40"></script>
-<script src="js/input.js?v=1.00.40"></script>
-<script src="js/audio.js?v=1.00.40"></script>
-<script src="js/sprites.js?v=1.00.40"></script>
-<script src="js/decor.js?v=1.00.40"></script>
-<script src="js/maps.js?v=1.00.40"></script>
-<script src="js/map.js?v=1.00.40"></script>
-<script src="js/entities.js?v=1.00.40"></script>
-<script src="js/menu.js?v=1.00.40"></script>
-<script src="js/world.js?v=1.00.40"></script>
-<script src="js/game.js?v=1.00.40"></script>
+<script src="js/config.js?v=1.00.41"></script>
+<script src="js/input.js?v=1.00.41"></script>
+<script src="js/audio.js?v=1.00.41"></script>
+<script src="js/sprites.js?v=1.00.41"></script>
+<script src="js/decor.js?v=1.00.41"></script>
+<script src="js/maps.js?v=1.00.41"></script>
+<script src="js/map.js?v=1.00.41"></script>
+<script src="js/entities.js?v=1.00.41"></script>
+<script src="js/menu.js?v=1.00.41"></script>
+<script src="js/world.js?v=1.00.41"></script>
+<script src="js/game.js?v=1.00.41"></script>
 <script>window.addEventListener('load', () => Game.init());</script>
 </body>
 </html>

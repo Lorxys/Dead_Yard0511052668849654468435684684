@@ -16,7 +16,7 @@ const GameMap = {
   build(id) {
     const def = MAPS[id], T = CFG.TILE, H = def.rows.length, W = def.rows[0].length;
     const m = { id, def, W, H, chars: def.rows.map(r => [...r]), machines: [], forge: null, boxSpots: [], ammo: [], fires: [] }, cells = {};
-    const PERK = { h: 'health', r: 'regen', s: 'speed', f: 'fire' };
+    const PERK = { h: 'health', r: 'regen', s: 'speed', f: 'fire', k: 'reload' };
     m.grid = m.chars.map((row, y) => row.map((c, x) => {
       if (FLOOR.includes(c)) return 0;
       if (c === 'P') { m.spawn = { x: x * T, y: y * T }; return 0; }

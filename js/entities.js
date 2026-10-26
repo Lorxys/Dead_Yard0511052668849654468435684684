@@ -27,6 +27,7 @@ class Player {
   get speed() { return CFG.PLAYER.speed * (this.perks.speed ? CFG.PERKS.speed.mult : 1); }
   get gun() { return CFG.WEAPONS[this.weapon]; }   // arme en main
   get fireRate() { return this.gun.rate / (this.perks.fire ? CFG.PERKS.fire.mult : 1); }
+  get reloadTime() { return this.perks.reload ? CFG.PERKS.reload.time : CFG.RELOAD; }
   get regenDelay() { return this.perks.regen ? CFG.PERKS.regen.delay : CFG.PLAYER.regenDelay; }
   get regenRate() { return this.perks.regen ? CFG.PERKS.regen.rate : CFG.PLAYER.regenRate; }
   get damage() { return this.upgraded ? CFG.UPGRADE.mult : 1; }   // multiplicateur de dégâts de l'arme en main (améliorée ou non)
@@ -52,14 +53,14 @@ class Player {
       this.mag += n; this.reserve -= n; this.reload = 0;
     }
     if (intent.fire && this.cd <= 0 && this.reload <= 0 && !this.mag) {
-      if (this.reserve > 0) { this.reload = CFG.RELOAD; world.emit('reload', { id: this.id, x: this.x, y: this.y }); }
+      if (this.reserve > 0) { this.reload = this.reloadTime; world.emit('reload', { id: this.id, x: this.x, y: this.y, t: this.reloadTime }); }
       else { this.cd = 0.35; world.emit('dry', { id: this.id }); }   // chargeur et réserve vides : clic à vide
     }
     if (intent.fire && this.cd <= 0 && this.reload <= 0 && this.mag > 0) {
       // le reste du délai est reporté pour que la cadence réelle suive exactement fireRate malgré le pas fixe
       this.cd = (this.cd > -dt ? this.cd : 0) + this.fireRate; this.flash = 0.05;
       // une balle de moins ; chargeur vide -> rechargement automatique s'il reste des balles en réserve
-      if (--this.mag === 0 && this.reserve > 0) { this.reload = CFG.RELOAD; world.emit('reload', { id: this.id, x: this.x, y: this.y }); }
+      if (--this.mag === 0 && this.reserve > 0) { this.reload = this.reloadTime; world.emit('reload', { id: this.id, x: this.x, y: this.y, t: this.reloadTime }); }
       // un tir = une balle, ou une gerbe de plombs pour le fusil à pompe
       const g = this.gun, v = g.speed, k = this.damage;
       for (let i = 0; i < (g.pellets || 1); i++) {
@@ -86,7 +87,7 @@ class Player {
   draw(c, cam) {
     if (!this.alive || (this.hurtT > 0 && Math.floor(this.hurtT * 14) % 2)) return;
     Sprites.soldier(c, this.x - cam.x, this.y - cam.y, this.a, { step: Math.floor(this.walk) % 2, flash: this.flash > 0, weapon: this.weapon });
-    if (this.reload > 0) Sprites.reloadBar(c, this.x - cam.x, this.y - cam.y - 20, 1 - this.reload / CFG.RELOAD);
+    if (this.reload > 0) Sprites.reloadBar(c, this.x - cam.x, this.y - cam.y - 20, 1 - this.reload / this.reloadTime);
   }
 }
 

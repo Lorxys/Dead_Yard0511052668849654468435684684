@@ -17,7 +17,7 @@ const Game = {
   init() {
     this.cv = document.getElementById('game'); this.c = this.cv.getContext('2d');
     this.hud = { nades: document.getElementById('nades'), weapon: document.getElementById('weapon'), wave: document.getElementById('wave'), score: document.getElementById('score'),
-      icon: document.getElementById('gunIcon'), mag: document.getElementById('mag'), reserve: document.getElementById('reserve') };
+      name: document.getElementById('gunName'), icon: document.getElementById('gunIcon'), mag: document.getElementById('mag'), reserve: document.getElementById('reserve') };
     // barre de vie : remplissage, « fantôme » qui montre les PV perdus, texte ; un trait tous les dégâts de zombie
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
@@ -445,7 +445,7 @@ const Game = {
         this.blood(e.x, e.y - 6, 20, CFG.BOX.color, false);
         break;
       }
-      case 'reload': if (e.id === this.localId) Sound.reload(CFG.RELOAD); break;
+      case 'reload': if (e.id === this.localId) Sound.reload(e.t); break;
       case 'dry': if (e.id === this.localId) Sound.dry(); break;
       case 'ammo':   // bruit de culasse et éclats de laiton
         if (e.id === this.localId) Sound.pickup();
@@ -487,14 +487,14 @@ const Game = {
     this.hpBar.classList.toggle('regen', p.alive && hp < p.maxHp && p.sinceHit >= p.regenDelay);
     this.hpBar.classList.toggle('low', p.alive && hp <= p.maxHp * 0.4);
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
-    // arme en main : logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
+    // arme en main (en bas à droite) : nom, logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
     const H = this.hud;
     if (H.iconOf !== p.weapon) {
       const g = H.icon.getContext('2d'); g.clearRect(0, 0, 20, 8); H.iconOf = p.weapon;
       Sprites.gun((col, x, y, w, h) => { g.fillStyle = col; g.fillRect(1 + x, 4 + y, w, h); }, 0, null, false, p.weapon, 0);
     }
     H.weapon.classList.toggle('up', p.upgraded); H.weapon.classList.toggle('reloading', p.reload > 0);
-    H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;
+    H.name.textContent = p.gun.name; H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;
     H.mag.classList.toggle('low', p.mag <= p.magSize / 4); H.reserve.classList.toggle('low', !p.reserve);
     this.hpBar.style.setProperty('--seg', zombieDamage(this.wave) / p.maxHp * 100 + '%');   // un cran = un coup de zombie de cette manche
     // bouton posé sur la machine devant laquelle se tient le joueur, prix en dessous
