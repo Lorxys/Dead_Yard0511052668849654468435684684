@@ -55,7 +55,7 @@ const SEAS = [
 const FRONTS = [
   { id: 'uk', name: 'Royaume-Uni', sub: 'Londres · 1940', pin: [-0.1, 51.5], tag: [-80, -38], maps: ['noman'],
     shapes: [LAND[11]] },
-  { id: 'fr', name: 'France', sub: 'Normandie · 1944', pin: [-0.6, 49.2], tag: [-92, 22], maps: ['noman'],
+  { id: 'fr', name: 'France', sub: 'Normandie · 1944', pin: [-0.6, 49.2], tag: [-92, 22], maps: ['village'],
     shapes: [[[2.5,51.1],[4.2,49.9],[4.8,50.1],[5.8,49.5],[6.4,49.4],[8.2,49],[7.6,48.3],[7.6,47.6],[7,47.4],[6,46.4],[6.8,46],[7,45],[7,44.2],[7.5,43.8],[6,43.1],[4.5,43.4],[3.2,43],[3,42.4],[1.5,42.5],[0,42.7],[-1.8,43.4],[-1.3,44.5],[-1.2,46],[-2.2,47],[-4.7,48],[-4.6,48.6],[-3,48.8],[-1.6,48.6],[-1.9,49.7],[-1,49.4],[0.2,49.5],[1.5,50.2],[1.6,50.9]], LAND[14]] },
   { id: 'de', name: 'Allemagne', sub: 'Berlin · 1945', pin: [13.4, 52.5], tag: [-6, -48], maps: ['noman'],
     shapes: [[[7.2,53.2],[8.5,53.6],[8.6,54.9],[9.8,54.8],[11,54],[12.5,54.4],[14.2,53.9],[14.4,53.3],[14.6,52.6],[14.7,51.4],[15,51],[14.3,50.9],[12.5,50.3],[12.3,50.2],[13.6,49],[13.8,48.6],[13,47.5],[12.2,47.7],[10.5,47.5],[9.6,47.5],[8.5,47.6],[7.6,47.6],[7.6,48.3],[8.2,49],[6.4,49.4],[6.1,50.1],[6,50.8],[5.9,51.1],[6.2,51.8],[6.9,52.2],[7,53.3]]] },
@@ -70,11 +70,6 @@ const FRONTS = [
   { id: 'jp', name: 'Japon', sub: 'Tokyo · 1945', pin: [139.7, 35.7], tag: [-10, -42], maps: ['noman'],
     shapes: [LAND[18], LAND[19], LAND[20]] }
 ];
-
-// maps jouables (pour l'instant une seule, proposée sur tous les fronts)
-const MAPS = {
-  noman: { name: "No Man's Land", info: 'Nuit · boue · tranchées' }
-};
 
 const WorldScene = {
   VIEW: { lon: [-170, 180], lat: [80, -56] },   // partie du monde affichée en vue d'ensemble
@@ -151,7 +146,7 @@ const WorldScene = {
     this.panel.maps.textContent = '';
     f.maps.forEach(id => {
       const m = MAPS[id], card = document.createElement('div'); card.className = 'mapcard';
-      card.appendChild(this.thumb());
+      card.appendChild(this.thumb(id));
       const txt = document.createElement('div'); txt.innerHTML = `<b>${m.name}</b><small>${m.info}</small>`;
       const play = document.createElement('button'); play.textContent = 'Jouer'; play.onclick = () => this.onPlay(f, id);
       txt.appendChild(play); card.appendChild(txt); this.panel.maps.appendChild(card);
@@ -160,14 +155,11 @@ const WorldScene = {
   },
   unselect() { if (!this.sel) return; this.prev = this.sel; this.sel = null; this.go({ ...this.base }); this.el.classList.remove('zoom'); },
   back() { if (this.sel) this.unselect(); else document.getElementById('wBack').click(); },
-  // aperçu de la map : le sol déjà dessiné + les machines
-  thumb() {
-    const T = CFG.TILE, big = document.createElement('canvas'); big.width = CFG.MW * T; big.height = CFG.MH * T;
-    const g = big.getContext('2d'); g.drawImage(GameMap.canvas, 0, 0);
-    GameMap.machines.forEach(m => Sprites.perkMachine(g, m.tx * T, m.ty * T, m.perk));
-    Sprites.forge(g, GameMap.forge.tx * T, GameMap.forge.ty * T); Sprites.mysteryBox(g, GameMap.box.tx * T, GameMap.box.ty * T, false);
-    const c = document.createElement('canvas'); c.width = c.height = 96;
-    c.getContext('2d').drawImage(big, 0, 0, 96, 96);
+  // aperçu réduit de la map (proportions conservées)
+  thumb(id) {
+    const big = GameMap.preview(id), c = document.createElement('canvas');
+    c.width = 96; c.height = Math.round(96 * big.height / big.width);
+    c.getContext('2d').drawImage(big, 0, 0, c.width, c.height);
     return c;
   },
 

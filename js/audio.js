@@ -198,6 +198,14 @@ const Sound = {
     const [t, out] = this.at(o, 0.6, 0.1);
     this.noise(out, t, 0.18, { type: 'lowpass', f: 900 }); this.noise(out, t + 0.03, 0.1, { f: 400, q: 3, v: 0.6 });
   },
+  // barricade qui s'effondre : grondement de gravats, planches qui craquent
+  door(o = {}) {
+    if (!this.ctx) return;
+    const [t, out] = this.at(o, 0.9, 0.4);
+    this.noise(out, t, 1.8, { type: 'lowpass', f: 600, fEnd: 80 });
+    this.tone(out, t, 70, 1, { to: 35 });
+    for (let i = 0; i < 7; i++) this.noise(out, t + 0.05 + Math.random() * 1.4, 0.05, { f: 1800, q: 3, v: 0.3 });
+  },
   denied() {
     if (!this.ctx) return;
     const [t, out] = this.at({}, 0.15, 0.05);

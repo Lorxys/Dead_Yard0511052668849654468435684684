@@ -1,7 +1,6 @@
 // Réglages globaux : modifie ici pour équilibrer le jeu
 const CFG = {
   TILE: 16,        // taille d'une tuile en pixels
-  MW: 24, MH: 24,  // taille de la map en tuiles (agrandis plus tard)
   VIEW_W: 350,     // largeur logique de l'écran en jeu (plus grand = vue plus dézoomée)
   MENU_W: 480,     // largeur logique du décor du menu
   WORLD_W: 640,    // largeur logique de la carte du monde (choix du front)
@@ -35,6 +34,8 @@ const CFG = {
   // machine d'amélioration en bas de la map : l'arme en main fait mult fois plus de dégâts ;
   // l'amélioration est perdue si on change d'arme (il faut la racheter pour la nouvelle)
   UPGRADE: { name: 'Arme Améliorée', color: '#b060ff', price: 5000, desc: 'Dégâts x2', info: 'Augmente la puissance de l\'arme', mult: 2 },
+  // portes achetables (barricades entre les zones) : prix, et durée en s pendant laquelle elles s'effondrent avant de laisser passer
+  DOOR: { name: 'Barricade', color: '#c9b48a', price: 1000, fade: 2.5 },
   // pas d'invincibilité : chaque zombie qui frappe doit attendre dmgCd s avant de refrapper, les autres peuvent toujours toucher
   ZOMBIE: { speed: 16, speedPerWave: 1.5, speedMaxBonus: 15, dmg: 30, dmgCd: 1 }   // vitesse = speed + bonus par vague (plafonné) + petit aléa
 };

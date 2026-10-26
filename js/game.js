@@ -27,7 +27,7 @@ const Game = {
     this.buy.btn.addEventListener('pointerdown', e => { e.preventDefault(); Input.buyQueue = true; });
     this.perkBox = document.getElementById('perks'); this.shownPerks = '';
     this.resize(); addEventListener('resize', () => this.resize());
-    GameMap.init(); Input.init(document.getElementById('touch'));
+    GameMap.load('noman'); Input.init(document.getElementById('touch'));
     Sound.attach(); Sound.menu(true);   // la musique du menu démarre au premier appui (règle des navigateurs)
     document.getElementById('restart').onclick = () => this.reset();
     document.getElementById('toMenu').onclick = () => this.toWorld();
@@ -89,7 +89,7 @@ const Game = {
     if (this.state === 'world') WorldScene.build(this.W, this.H);
   },
   reset() {
-    this.state = 'play'; this.resize(); GameMap.render(); GameMap.flowKey = null;
+    this.state = 'play'; this.resize(); GameMap.load(this.mapId || 'noman');   // map neuve : portes refermées, sang effacé
     Sound.menu(false); Sound.setNear(null);   // en jeu : pas de musique, seulement les bruitages
     // plus tard : un Player par joueur connecté, chacun sur son point d'apparition
     const s = GameMap.playerSpawn(0);
@@ -153,6 +153,7 @@ const Game = {
   // ce que propose une machine au joueur ({ name, info, color, label, price }), ou null : rien à acheter
   // (atout déjà acquis, boîte en plein tirage ou arme sortie pour un autre joueur)
   offer(p, m) {
+    if (m.perk === 'door') return { name: CFG.DOOR.name, info: 'Accès : ' + GameMap.doorTarget(m, p), color: CFG.DOOR.color, label: 'Ouvrir', price: CFG.DOOR.price };
     if (m.perk === 'box') {
       const B = this.box, C = CFG.BOX;
       if (B.state === 'idle') return { name: C.name, info: C.info, color: C.color, label: 'Acheter', price: C.price };
@@ -167,6 +168,7 @@ const Game = {
   buyPerk(p) {
     const m = GameMap.nearMachine(p); if (!m) return;
     if (m.perk === 'box') return this.useBox(p);
+    if (m.perk === 'door') return this.openDoor(p, m);
     const def = this.perkDef(m.perk), price = this.priceOf(p, m.perk);
     if (this.owns(p, m.perk)) return;   // chaque atout et l'amélioration ne s'achètent qu'une fois
     if (p.score < price) { this.emit('buyfail', { id: p.id, perk: m.perk }); return; }
@@ -174,6 +176,13 @@ const Game = {
     if (m.perk === 'upgrade') p.upgraded = true; else p.perks[m.perk] = true;
     if (def.maxHp) { p.hp += def.maxHp - p.maxHp; p.maxHp = def.maxHp; }
     this.emit('perk', { id: p.id, perk: m.perk, x: p.x, y: p.y });
+  },
+  // porte : payer fait s'effondrer la barricade ; la zone derrière s'ouvre (et les zombies peuvent y apparaître)
+  openDoor(p, d) {
+    if (p.score < CFG.DOOR.price) { this.emit('buyfail', { id: p.id, perk: 'door' }); return; }
+    p.score -= CFG.DOOR.price;
+    const T = CFG.TILE, zones = GameMap.unlock(d);
+    this.emit('door', { id: p.id, x: (d.tx + d.w / 2) * T, y: (d.ty + d.h / 2) * T, w: d.w * T, h: d.h * T, zones });
   },
   // boîte mystère : payer lance le tirage ; une fois l'arme sortie, seul celui qui a payé peut la prendre
   useBox(p) {
@@ -224,10 +233,14 @@ const Game = {
     }
     this.emit('explode', { x: n.x, y: n.y });
   },
+  // un zombie apparaît dans une zone ouverte : jamais sous le nez d'un joueur (120 px), ni trop loin sur les grandes maps
+  // (au-delà de 360 px il mettrait trop longtemps à arriver ; accepté seulement en dernier recours)
   spawn(alive) {
-    for (let i = 0; i < 30; i++) {
-      const x = (1.5 + Math.random() * (CFG.MW - 3)) * CFG.TILE, y = (1.5 + Math.random() * (CFG.MH - 3)) * CFG.TILE;
-      if (alive.every(p => Math.hypot(x - p.x, y - p.y) > 120) && !GameMap.blocked(x, y, 4)) { this.zs.push(new Zombie(x, y, this.wave)); return; }
+    const T = CFG.TILE, tiles = [...GameMap.openZones].flatMap(z => GameMap.zoneTiles[z]);
+    for (let i = 0; i < 40; i++) {
+      const [tx, ty] = tiles[Math.random() * tiles.length | 0], x = (tx + 0.5) * T, y = (ty + 0.5) * T;
+      const d = Math.min(...alive.map(p => Math.hypot(x - p.x, y - p.y)));
+      if (d > 120 && (d < 360 || i >= 30) && !GameMap.blocked(x, y, 4)) { this.zs.push(new Zombie(x, y, this.wave)); return; }
     }
   },
   // intents : { [id du joueur]: intention } pour ce pas de simulation
@@ -237,7 +250,7 @@ const Game = {
     GameMap.computeFlow(alive);
     // apparition progressive des zombies
     if (this.toSpawn > 0 && (this.spawnT -= dt) <= 0) { this.spawn(alive); this.toSpawn--; this.spawnT = 0.7; }
-    this.updateBox(dt);
+    this.updateBox(dt); GameMap.updateDoors(dt);
     this.zs.forEach(z => z.update(dt, this));
     // zombies qui se repoussent entre eux
     for (let i = 0; i < this.zs.length; i++) for (let j = i + 1; j < this.zs.length; j++) {
@@ -370,6 +383,19 @@ const Game = {
         break;
       }
       case 'boxclose': { const b = GameMap.box; Sound.boxClose(this.heard((b.tx + 1) * CFG.TILE, b.ty * CFG.TILE)); break; }
+      case 'door': {   // la barricade s'effondre : poussière, éclats de bois, grondement ; bannière avec la zone ouverte
+        Sound.door(this.heard(e.x, e.y));
+        for (let i = 0; i < 6; i++) {
+          const x = e.x + (Math.random() - 0.5) * e.w, y = e.y + (Math.random() - 0.5) * e.h;
+          this.blood(x, y, 8, '#6a5a44', false); this.blood(x, y, 4, '#4a3018', false);
+        }
+        this.shake = 0.25;
+        if (e.id === this.localId && e.zones.length) {
+          const b = document.getElementById('banner'); b.textContent = e.zones.join(' · ').toUpperCase(); b.style.color = CFG.DOOR.color; b.classList.add('show');
+          setTimeout(() => { b.classList.remove('show'); b.style.color = ''; }, 2200);
+        }
+        break;
+      }
       case 'pickup': {   // nouvelle arme en main : bannière avec son nom
         if (e.id === this.localId) {
           const b = document.getElementById('banner'); b.textContent = CFG.WEAPONS[e.weapon].name.toUpperCase(); b.style.color = CFG.BOX.color; b.classList.add('show');
@@ -403,7 +429,7 @@ const Game = {
     this.hud.nades.textContent = '×' + p.grenades;
     this.gCount.textContent = p.grenades; this.gStick.classList.toggle('empty', !p.grenades);
     // caméra sur le joueur local (centrée si la map est plus petite que l'écran) + secousse
-    const mw = CFG.MW * CFG.TILE, mh = CFG.MH * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
+    const mw = GameMap.W * CFG.TILE, mh = GameMap.H * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
     this.cam.x = Math.round((mw <= this.W ? (mw - this.W) / 2 : Math.max(0, Math.min(mw - this.W, p.x - this.W / 2))) + (Math.random() - 0.5) * sk);
     // marge de 22 px en haut (sous le HUD) et en bas pour bien voir les machines et leur bouton d'achat
     this.cam.y = Math.round((mh <= this.H ? (mh - this.H) / 2 : Math.max(-22, Math.min(mh - this.H + 22, p.y - this.H / 2))) + (Math.random() - 0.5) * sk);
@@ -425,7 +451,8 @@ const Game = {
       B.box.style.left = r.left + ((m.tx + (m.w || 1) / 2) * CFG.TILE - this.cam.x) * k + 'px';
       // machine du bas : bouton sur son socle pour laisser voir la chambre lumineuse ;
       // boîte : au-dessus quand elle est fermée, sur sa face avant quand l'arme flotte au-dessus
-      const dy = m.perk === 'upgrade' ? 22 : m.perk === 'box' ? (this.box.state === 'idle' ? -8 : 12) : 8;
+      // porte : bouton au milieu de la barricade
+      const dy = m.perk === 'door' ? m.h * CFG.TILE / 2 : m.perk === 'upgrade' ? 22 : m.perk === 'box' ? (this.box.state === 'idle' ? -8 : 12) : 8;
       B.box.style.top = r.top + (m.ty * CFG.TILE + dy - this.cam.y) * k + 'px';
       B.info.textContent = o.info; B.name.textContent = o.name; B.name.style.color = o.color; B.label.textContent = o.label;
       B.price.textContent = o.price ? o.price + ' pts' : '';
@@ -455,7 +482,7 @@ const Game = {
       if (d < 260 && Sound.moanFree()) Sound.growl({ vol: Math.pow(1 - d / 260, 1.5), pan: (z.x - p.x) / 200 });
     }
     const m = this.state === 'play' && p.alive && GameMap.nearMachine(p);
-    Sound.setNear(m && m.perk !== 'box' ? m.perk : null);
+    Sound.setNear(m && Sound.JINGLES[m.perk] ? m.perk : null);   // la boîte et les portes n'ont pas de jingle
   },
   // état affiché de la boîte mystère : pendant le tirage, les armes défilent de plus en plus lentement
   // puis s'arrêtent sur l'arme tirée ; elle clignote les 3 dernières secondes avant de redescendre dans la boîte
@@ -482,6 +509,7 @@ const Game = {
     c.fillStyle = '#0a0806'; c.fillRect(0, 0, this.W, this.H);
     GameMap.draw(c, cam);
     const T = CFG.TILE;
+    GameMap.drawDoors(c, cam);
     GameMap.machines.forEach(m => Sprites.perkMachine(c, m.tx * T - cam.x, m.ty * T - cam.y, m.perk));
     const fg = GameMap.forge; Sprites.forge(c, fg.tx * T - cam.x, fg.ty * T - cam.y);
     const mb = GameMap.box, bv = this.boxView(); Sprites.mysteryBox(c, mb.tx * T - cam.x, mb.ty * T - cam.y, bv.open);
@@ -510,6 +538,7 @@ const Game = {
     const bx0 = mb.tx * T - cam.x, by0 = mb.ty * T - cam.y;
     halo(Sprites.mysteryBoxLit(c, bx0, by0, t / 1000, bv), bx0 + 16, by0 + (bv.open ? -8 : 4), (bv.open ? 52 : 30) + Math.sin(t / 350) * 3);
     // yeux des zombies et balles traçantes visibles dans le noir
+    GameMap.drawFires(c, cam, t, this.W, this.H);
     this.zs.forEach(z => Sprites.zombieEyes(c, z.x - cam.x, z.y - cam.y, z.a));
     this.bullets.forEach(b => {
       const bx = Math.round(b.x - cam.x), by = Math.round(b.y - cam.y), n = Math.hypot(b.vx, b.vy);

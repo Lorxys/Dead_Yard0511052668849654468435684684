@@ -8,7 +8,9 @@ Zombie shooter pixel art vu du dessus, jouable sur mobile (Android/iOS) et PC.
 - js/input.js : joysticks tactiles + clavier/souris
 - js/audio.js : sons et musiques générés par code (Web Audio)
 - js/sprites.js : pixel art dessiné par code
-- js/map.js : map fermée, tuiles, collisions
+- js/decor.js : décors des maps (véhicules, ruines, tombes, barricades...) dessinés par code
+- js/maps.js : les maps jouables, décrites par un plan en texte (légende en tête du fichier)
+- js/map.js : map en cours (chargement, zones, portes achetables, collisions, rendu)
 - js/entities.js : joueurs et zombies
 - js/menu.js : décor animé du menu
 - js/world.js : carte du monde (choix du front et de la map)
