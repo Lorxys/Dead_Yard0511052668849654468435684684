@@ -490,9 +490,9 @@ const Game = {
     // arme en main (en bas à droite) : nom, logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
     const H = this.hud;
     // dessiné directement en x5 sur le canvas (ombre noire, halo violet si améliorée), sans mise à l'échelle CSS
-    const key = p.weapon + p.upgraded;
-    if (H.iconOf !== key) {
-      const g = H.icon.getContext('2d'), S = 5; g.clearRect(0, 0, 100, 40); H.iconOf = key;
+    const iconKey = p.weapon + p.upgraded;
+    if (H.iconOf !== iconKey) {
+      const g = H.icon.getContext('2d'), S = 5; g.clearRect(0, 0, 100, 40); H.iconOf = iconKey;
       const draw = (dx, dy, tint) => Sprites.gun((col, x, y, w, h) => { g.fillStyle = tint || col; g.fillRect((1 + x) * S + dx, (4 + y) * S + dy, w * S, h * S); }, 0, null, false, p.weapon, 0);
       if (p.upgraded) [[-2, 0], [2, 0], [0, -2], [0, 2]].forEach(([dx, dy]) => draw(dx, dy, '#b060ff'));
       draw(2, 2, '#000'); draw(0, 0);
