@@ -4,6 +4,7 @@ const CFG = {
   MW: 24, MH: 24,  // taille de la map en tuiles (agrandis plus tard)
   VIEW_W: 350,     // largeur logique de l'écran en jeu (plus grand = vue plus dézoomée)
   MENU_W: 480,     // largeur logique du décor du menu
+  WORLD_W: 640,    // largeur logique de la carte du monde (choix du front)
   // vie : 150 PV max ; après regenDelay s sans être touché, la vie remonte de regenRate PV/s jusqu'au max
   PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'rifle' },
   // armes : rate = délai entre deux tirs (s), dmg = dégâts par balle de près, far = dégâts au-delà de fall[1] px

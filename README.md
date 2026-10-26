@@ -11,6 +11,7 @@ Zombie shooter pixel art vu du dessus, jouable sur mobile (Android/iOS) et PC.
 - js/map.js : map fermée, tuiles, collisions
 - js/entities.js : joueurs et zombies
 - js/menu.js : décor animé du menu
+- js/world.js : carte du monde (choix du front et de la map)
 - js/game.js : boucle, vagues, tirs, rendu
 
 ## Préparation au multijoueur

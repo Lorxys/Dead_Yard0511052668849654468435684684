@@ -31,15 +31,25 @@ const Game = {
     Sound.attach(); Sound.menu(true);   // la musique du menu démarre au premier appui (règle des navigateurs)
     document.getElementById('restart').onclick = () => this.reset();
     document.getElementById('toMenu').onclick = () => this.toMenu();
-    // menu : le jeu ne démarre qu'au clic sur Jouer
-    document.getElementById('play').onclick = () => { document.getElementById('menu').classList.remove('show'); this.lockLandscape(); this.reset(); };
+    // menu : Jouer ouvre la carte du monde, où l'on choisit le front puis la map
+    WorldScene.init((front, map) => { this.front = front; this.mapId = map; WorldScene.hide(); this.reset(); }, () => this.toMenu());
+    document.getElementById('play').onclick = () => { this.lockLandscape(); this.toWorld(); };
+    // réglages en jeu : pause, puis reprendre ou quitter vers la carte du monde (Échap ou P au clavier)
+    document.getElementById('pauseBtn').onclick = () => this.pause(true);
+    document.getElementById('resume').onclick = () => this.pause(false);
+    document.getElementById('quit').onclick = () => this.toWorld();
+    addEventListener('keydown', e => {
+      if (e.repeat || (e.code !== 'Escape' && e.code !== 'KeyP')) return;
+      if (this.state === 'play' || this.state === 'pause') this.pause(this.state === 'play');
+      else if (this.state === 'world' && e.code === 'Escape') WorldScene.back();
+    });
     // mobile à la verticale : écran « tourne ton appareil » et jeu en pause
     this.portrait = matchMedia('(orientation: portrait) and (pointer: coarse)');
     this.last = performance.now();
     requestAnimationFrame(t => this.loop(t));
     // mise à jour automatique au lancement et au retour sur l'appli (seulement depuis le menu, jamais en pleine partie)
     this.checkUpdate();
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && this.state === 'menu') this.checkUpdate(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && (this.state === 'menu' || this.state === 'world')) this.checkUpdate(); });
   },
   // le téléphone peut garder une ancienne index.html en cache : on demande la version en ligne sans cache
   // et, si elle diffère de celle affichée dans le menu, on recharge la page à une adresse neuve (?v=...)
@@ -63,9 +73,10 @@ const Game = {
     el.requestFullscreen().then(() => screen.orientation.lock('landscape')).catch(() => {});
   },
   resize() {
-    this.W = this.state === 'menu' ? CFG.MENU_W : CFG.VIEW_W; this.H = Math.round(this.W * innerHeight / innerWidth);
+    this.W = this.state === 'menu' ? CFG.MENU_W : this.state === 'world' ? CFG.WORLD_W : CFG.VIEW_W; this.H = Math.round(this.W * innerHeight / innerWidth);
     this.cv.width = this.W; this.cv.height = this.H; this.c.imageSmoothingEnabled = false;
     if (this.state === 'menu') MenuScene.build(this.W, this.H);
+    if (this.state === 'world') WorldScene.build(this.W, this.H);
   },
   reset() {
     this.state = 'play'; this.resize(); GameMap.render(); GameMap.flowKey = null;
@@ -80,14 +91,24 @@ const Game = {
     document.body.classList.add('playing');   // affiche le joystick grenade sur mobile
     document.getElementById('over').classList.remove('show'); this.nextWave();
   },
-  toMenu() {
-    this.state = 'menu'; this.players = []; this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = [];
+  // quitte la partie en cours (s'il y en a une) pour le menu principal ou la carte du monde
+  leaveGame(state) {
+    this.state = state; this.players = []; this.zs = []; this.bullets = []; this.nades = []; this.fx = []; this.lights = [];
     Sound.menu(true); Sound.setNear(null);
     for (const k in this.hud) this.hud[k].textContent = '';
     document.body.classList.remove('playing');
-    document.getElementById('over').classList.remove('show');
-    document.getElementById('menu').classList.add('show');
+    ['over', 'pause', 'menu'].forEach(id => document.getElementById(id).classList.remove('show'));
     this.resize();
+  },
+  toMenu() { WorldScene.hide(); this.leaveGame('menu'); document.getElementById('menu').classList.add('show'); },
+  toWorld() { this.leaveGame('world'); WorldScene.show(); },
+  // pause : la simulation s'arrête, le jingle de la machine se tait ; on relâche le tir pour ne pas repartir en rafale
+  pause(on) {
+    if (on && this.state !== 'play') return;
+    this.state = on ? 'pause' : 'play';
+    document.getElementById('pause').classList.toggle('show', on);
+    Input.mouse.down = false; Input.nadeQueue = null; Input.buyQueue = false;
+    if (on) Sound.setNear(null);
   },
   emit(type, data) { this.events.push({ type, ...data }); },
 
@@ -445,6 +466,7 @@ const Game = {
   },
   draw(t) {
     const c = this.c, cam = this.cam, p = this.me;
+    if (this.state === 'world') return WorldScene.draw(c, t);
     if (this.state === 'menu' || !p) return MenuScene.draw(c, t);
     c.fillStyle = '#0a0806'; c.fillRect(0, 0, this.W, this.H);
     GameMap.draw(c, cam);
@@ -527,7 +549,7 @@ const Game = {
     }
     this.events.splice(0).forEach(e => this.onEvent(e));
     Input.update(dt);
-    if (this.state !== 'menu') this.updateVisuals(dt);
+    if (this.state === 'play' || this.state === 'over') this.updateVisuals(dt);
     this.draw(t);
     requestAnimationFrame(t2 => this.loop(t2));
   }

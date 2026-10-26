@@ -114,3 +114,56 @@ button:active{transform:translateY(3px)}
 #over h1{font-size:clamp(18px,5.5vw,38px)}
 #over p{color:#c9b48a;font-size:12px;text-shadow:2px 2px 0 #000}
 #over .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
+
+/* ---- Petits boutons (retour, navigation) ---- */
+button.small{font-size:9px;letter-spacing:2px;padding:11px 16px;text-shadow:2px 2px 0 #000}
+
+/* ---- Carte du monde : choix du front (la carte est dessinée dans le canvas derrière) ---- */
+#world{position:fixed;inset:0;display:none;overflow:hidden}
+#world.show{display:block}
+#world::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(rgba(0,0,0,.14) 0 2px,transparent 2px 4px)}
+#wBack{position:absolute;z-index:2;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(env(safe-area-inset-top,0px) + 10px);margin:0}
+#world .title{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:0;right:0;text-align:center;pointer-events:none;font-size:clamp(10px,2.4vw,16px);letter-spacing:3px;text-transform:uppercase;
+  color:#c41a14;text-shadow:2px 2px 0 #000,0 0 12px rgba(200,0,0,.5);transition:opacity .4s}
+#world .hint{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:0;right:0;text-align:center;pointer-events:none;font-size:8px;color:#7e6a58;text-shadow:1px 1px 0 #000;transition:opacity .4s;animation:blink 1.6s steps(1) infinite}
+@keyframes blink{50%{opacity:.4}}
+#world.zoom .title,#world.zoom .hint{opacity:0}
+/* étiquettes des fronts : plaques de métal sombre bordées de sang, placées en JS au bout d'un trait pointillé */
+#pins button{position:fixed;z-index:1;transform:translate(-50%,-50%);margin:0;padding:6px 7px;font-size:8px;letter-spacing:1px;color:#f0e2cc;text-shadow:1px 1px 0 #000;white-space:nowrap;
+  background:#1c0606;box-shadow:0 -2px 0 #000,0 2px 0 #000,-2px 0 0 #000,2px 0 0 #000,inset 0 0 0 2px #7a0c0a,3px 3px 0 2px rgba(0,0,0,.5)}
+#pins button:hover{animation:none;filter:none;color:#fff;background:#5e0808}
+#pins button:active{transform:translate(-50%,-50%) translateY(2px)}
+/* panneau du pays choisi, à droite de la carte zoomée */
+#front{position:absolute;right:calc(env(safe-area-inset-right,0px) + 14px);top:50%;width:min(42%,340px);transform:translate(calc(100% + 40px),-50%);transition:transform .5s cubic-bezier(.2,.8,.2,1) .25s;
+  display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 18px;text-align:center;
+  background:rgba(12,4,4,.88);box-shadow:0 -4px 0 #120000,0 4px 0 #120000,-4px 0 0 #120000,4px 0 0 #120000,inset 0 0 0 2px #4a0a0a}
+#world.zoom #front{transform:translate(0,-50%)}
+#world:not(.zoom) #front{transition-delay:0s}
+#fSub{color:#a08a6a;font-size:8px;letter-spacing:2px;text-transform:uppercase;text-shadow:2px 2px 0 #000}
+#fName{position:relative;font-size:clamp(13px,3vw,22px);letter-spacing:2px;text-transform:uppercase;line-height:1.2;color:transparent;
+  background:linear-gradient(#ff4a32 0 18%,#c41a14 18% 55%,#8a0a0a 55% 80%,#5a0404 80%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(2px 2px 0 #1a0000) drop-shadow(3px 3px 0 #000)}
+#fName .drip{top:85%}
+#fMaps{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:8px}
+.mapcard{display:flex;align-items:center;gap:10px;padding:8px;text-align:left;background:#1a0807;box-shadow:inset 0 0 0 2px #3a0a0a}
+.mapcard canvas{width:64px;height:64px;flex:none;box-shadow:0 0 0 2px #000,0 0 0 4px #5a0a0a}
+.mapcard div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mapcard b{font-size:9px;font-weight:normal;color:#f0e2cc;text-shadow:1px 1px 0 #000}
+.mapcard small{font-size:7px;color:#8a7660}
+.mapcard button{align-self:flex-start;font-size:10px;letter-spacing:2px;padding:10px 16px;margin:4px 0 0 4px}
+
+/* ---- Bouton réglages en jeu (roue crantée en pixels) + écran de pause ---- */
+#pauseBtn{display:none;position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 8px);right:calc(env(safe-area-inset-right,0px) + 10px);width:32px;height:32px;padding:0;margin:0;
+  background:rgba(20,6,6,.75) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cg fill='%23c9b48a'%3E%3Crect x='5' y='0' width='2' height='2'/%3E%3Crect x='5' y='10' width='2' height='2'/%3E%3Crect x='0' y='5' width='2' height='2'/%3E%3Crect x='10' y='5' width='2' height='2'/%3E%3Crect x='1' y='1' width='2' height='2'/%3E%3Crect x='9' y='1' width='2' height='2'/%3E%3Crect x='1' y='9' width='2' height='2'/%3E%3Crect x='9' y='9' width='2' height='2'/%3E%3Crect x='3' y='2' width='6' height='8'/%3E%3Crect x='2' y='3' width='8' height='6'/%3E%3C/g%3E%3Crect x='5' y='4' width='2' height='4' fill='%231c0606'/%3E%3Crect x='4' y='5' width='4' height='2' fill='%231c0606'/%3E%3C/svg%3E") center/18px 18px no-repeat;
+  image-rendering:pixelated;box-shadow:0 0 0 2px #000,inset 0 0 0 2px #7a0c0a}
+body.playing #pauseBtn{display:block}
+#pauseBtn:hover{animation:none;background-color:#5e0808}
+body.playing #hud{padding-right:calc(env(safe-area-inset-right,0px) + 54px)}
+#pause{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:16px;text-align:center;
+  background:radial-gradient(ellipse at center,rgba(40,0,0,.7),rgba(5,0,0,.92))}
+#pause.show{display:flex}
+#pause h1{position:relative;font-size:clamp(18px,5.5vw,38px);text-transform:uppercase;line-height:1.15;color:transparent;
+  background:linear-gradient(#ff4a32 0 18%,#c41a14 18% 55%,#8a0a0a 55% 80%,#5a0404 80%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(3px 3px 0 #1a0000) drop-shadow(4px 4px 0 #000) drop-shadow(0 0 16px rgba(170,0,0,.5))}
+#pause h1 .drip{top:80%}
+#pause .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
