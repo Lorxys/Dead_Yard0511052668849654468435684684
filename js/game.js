@@ -620,7 +620,7 @@ const Game = {
   drawAmmo(c, p, t) {
     if (!p.alive) return;
     const r = this.cv.getBoundingClientRect(), k = r.width / this.W, hb = this.hpBar.getBoundingClientRect();
-    const x0 = Math.round((hb.left - r.left) / k), y0 = Math.round((hb.bottom - r.top) / k) + 5, blink = p.reload > 0 && Math.floor(t / 250) % 2;
+    const x0 = Math.round((hb.left - r.left) / k), y0 = Math.round((hb.bottom - r.top) / k) + 4, blink = p.reload > 0 && Math.floor(t / 250) % 2;
     // pixel de taille s avec son contour (premier passage) puis sa couleur (second passage)
     const px = (x, y, w, h, col, pass) => pass ? (c.fillStyle = col, c.fillRect(x, y, w, h)) : (c.fillStyle = '#000', c.fillRect(x - 1, y - 1, w + 2, h + 2));
     const text = (str, x, y, s, col, pass) => {
@@ -631,17 +631,17 @@ const Game = {
       }
       return x;
     };
-    const G = 3, gx = x0 + 2, gy = y0 + 11, magCol = p.mag <= p.magSize / 4 ? '#ff3a2a' : '#fff', resCol = p.reserve ? '#fff' : '#ff3a2a';
+    const G = 2, gx = x0 + 1, gy = y0 + 6, magCol = p.mag <= p.magSize / 4 ? '#ff3a2a' : '#fff', resCol = p.reserve ? '#fff' : '#ff3a2a';
     for (const pass of [0, 1]) {
       if (!blink) {
         if (!pass && p.upgraded) Sprites.gun((col, x, y, w, h) => { c.fillStyle = '#b060ff'; c.fillRect(gx + x * G - 2, gy + y * G - 2, w * G + 4, h * G + 4); }, 0, null, false, p.weapon, 0);
         Sprites.gun((col, x, y, w, h) => px(gx + x * G, gy + y * G, w * G, h * G, col, pass), 0, null, false, p.weapon, 0);
       }
-      let x = x0 + 62;
-      if (!blink) text(p.mag, x, y0, 4, magCol, pass);
-      x += String(p.mag).length * 16 + 3;
-      px(x, y0, 2, 20, '#fff', pass);
-      text(p.reserve, x + 6, y0 + 5, 3, resCol, pass);
+      let x = x0 + 41;
+      if (!blink) text(p.mag, x, y0, 2, magCol, pass);
+      x += String(p.mag).length * 8 + 2;
+      px(x, y0, 1, 10, '#fff', pass);
+      text(p.reserve, x + 4, y0, 2, resCol, pass);
     }
   },
   loop(t) {
