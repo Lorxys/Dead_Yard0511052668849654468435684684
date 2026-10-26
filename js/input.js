@@ -1,11 +1,12 @@
 // Joysticks tactiles flottants (gauche = déplacement, droite = visée + tir), joystick grenade fixe
-// + clavier/souris pour PC (clic gauche = tir, clic droit ou G = grenade vers le curseur)
+// + clavier/souris pour PC (clic gauche = tir, clic droit ou G = grenade vers le curseur, R = recharger)
 const Input = {
   mouse: { x: 0, y: 0, down: false }, keys: {}, ptr: { L: null, R: null },
   nadeDrag: null,    // visée en cours sur le joystick grenade ({x,y} de longueur ≤ 1)
   nadeAim: null,     // la même, lissée image par image pour un aperçu de trajectoire fluide
   nadeQueue: null,   // lancer en attente : { stick: {x,y} } ou { screen: {x,y} }
   buyQueue: false,   // achat demandé (bouton « Acheter » ou touche E)
+  reloadQueue: false,   // rechargement demandé (bouton « Recharger » ou touche R)
   init(el) {
     const R = 48, S = { L: document.getElementById('sL'), R: document.getElementById('sR') };
     const set = (t, e) => {
@@ -67,6 +68,7 @@ const Input = {
       this.keys[e.code] = true;
       if (e.code === 'KeyG' && !e.repeat) this.nadeQueue = { screen: { x: this.mouse.x, y: this.mouse.y } };
       if (e.code === 'KeyE' && !e.repeat) this.buyQueue = true;
+      if (e.code === 'KeyR' && !e.repeat) this.reloadQueue = true;
     });
     addEventListener('keyup', e => this.keys[e.code] = false);
     document.addEventListener('contextmenu', e => e.preventDefault());
@@ -86,6 +88,7 @@ const Input = {
   // récupère (et consomme) le lancer de grenade en attente
   takeGrenade() { const q = this.nadeQueue; this.nadeQueue = null; return q; },
   takeBuy() { const b = this.buyQueue; this.buyQueue = false; return b; },
+  takeReload() { const r = this.reloadQueue; this.reloadQueue = false; return r; },
   getAimStick() {
     const t = this.ptr.R; if (!t) return null;
     return { x: t.v.x, y: t.v.y, fire: Math.hypot(t.v.x, t.v.y) > 0.25 };

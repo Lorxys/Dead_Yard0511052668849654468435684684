@@ -2,7 +2,7 @@
 let nextId = 1;   // identifiant unique de chaque zombie/balle (pour les synchroniser en réseau plus tard)
 // dégâts d'un coup de zombie à une manche donnée (paliers de CFG.ZOMBIE.dmg)
 const zombieDamage = wave => CFG.ZOMBIE.dmg.reduce((d, [from, v]) => wave >= from ? v : d, 0);
-const NO_INTENT ={ move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null, buy: false };
+const NO_INTENT ={ move: { x: 0, y: 0 }, aim: null, fire: false, grenade: null, buy: false, reload: false };
 
 function moveEntity(e, dx, dy) {
   if (!GameMap.blocked(e.x + dx, e.y, e.r)) e.x += dx;
@@ -21,6 +21,7 @@ class Player {
   get reserveMax() { return this.gun.reserve * (this.upgraded ? CFG.UPGRADE.reserve : 1); }
   get ammoFull() { return this.mag >= this.magSize && this.reserve >= this.reserveMax; }
   refill() { this.mag = this.magSize; this.reserve = this.reserveMax; this.reload = 0; }
+  startReload(world) { this.reload = this.reloadTime; world.emit('reload', { id: this.id, x: this.x, y: this.y, t: this.reloadTime }); }
   // nouvelle arme en main (boîte mystère) : pas améliorée, munitions au max
   setWeapon(w) { this.weapon = w; this.upgraded = false; this.cd = 0; this.refill(); }
   // caractéristiques modifiées par les atouts achetés
@@ -33,7 +34,7 @@ class Player {
   get damage() { return this.upgraded ? CFG.UPGRADE.mult : 1; }   // multiplicateur de dégâts de l'arme en main (améliorée ou non)
   // prix du prochain atout : augmente à chaque atout déjà acheté
   get perkPrice() { return CFG.PERK_PRICE.start + CFG.PERK_PRICE.step * Object.keys(this.perks).length; }
-  // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur), buy }
+  // intent = { move: {x,y}, aim: {x,y} | null, fire, grenade: {x,y} | null (cible relative au joueur), buy, reload }
   // vient du clavier/tactile en local, du réseau plus tard
   update(dt, intent, world) {
     if (!this.alive) return;
@@ -47,20 +48,22 @@ class Player {
     const aim = intent.aim;
     if (aim && Math.hypot(aim.x, aim.y) > 0.1) this.a = Math.atan2(aim.y, aim.x);
     else if (m > 0.2) this.a = Math.atan2(mv.y, mv.x);
+    // rechargement demandé (bouton Recharger ou touche R) : seulement si le chargeur n'est pas plein et qu'il reste des balles
+    if (intent.reload && this.reload <= 0 && this.mag < this.magSize && this.reserve > 0) this.startReload(world);
     // rechargement : à la fin, le chargeur se remplit avec ce qu'il reste en réserve
     if (this.reload > 0 && (this.reload -= dt) <= 0) {
       const n = Math.min(this.magSize - this.mag, this.reserve);
       this.mag += n; this.reserve -= n; this.reload = 0;
     }
     if (intent.fire && this.cd <= 0 && this.reload <= 0 && !this.mag) {
-      if (this.reserve > 0) { this.reload = this.reloadTime; world.emit('reload', { id: this.id, x: this.x, y: this.y, t: this.reloadTime }); }
+      if (this.reserve > 0) this.startReload(world);
       else { this.cd = 0.35; world.emit('dry', { id: this.id }); }   // chargeur et réserve vides : clic à vide
     }
     if (intent.fire && this.cd <= 0 && this.reload <= 0 && this.mag > 0) {
       // le reste du délai est reporté pour que la cadence réelle suive exactement fireRate malgré le pas fixe
       this.cd = (this.cd > -dt ? this.cd : 0) + this.fireRate; this.flash = 0.05;
       // une balle de moins ; chargeur vide -> rechargement automatique s'il reste des balles en réserve
-      if (--this.mag === 0 && this.reserve > 0) { this.reload = this.reloadTime; world.emit('reload', { id: this.id, x: this.x, y: this.y, t: this.reloadTime }); }
+      if (--this.mag === 0 && this.reserve > 0) this.startReload(world);
       // un tir = une balle, ou une gerbe de plombs pour le fusil à pompe
       const g = this.gun, v = g.speed, k = this.damage;
       for (let i = 0; i < (g.pellets || 1); i++) {

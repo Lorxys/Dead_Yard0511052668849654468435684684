@@ -14,6 +14,14 @@ html,body{height:100%;background:#050203;overflow:hidden;overscroll-behavior:non
 #sG.empty{opacity:.35}
 #sG i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;border:2px solid rgba(255,255,255,.4);
   background:rgba(20,8,8,.8) var(--nade) center/24px 28px no-repeat;image-rendering:pixelated;pointer-events:none}
+/* bouton Recharger : à gauche du joystick grenade, au-dessus de la zone de visée (écran tactile seulement) */
+#reloadBtn{position:fixed;right:calc(env(safe-area-inset-right,0px) + 132px);bottom:calc(50% + 12px);width:56px;height:56px;margin:0;padding:0;border-radius:50%;display:none;touch-action:none;
+  border:2px solid rgba(232,200,120,.6);background:rgba(60,40,10,.35);box-shadow:none;animation:none;filter:none}
+@media (pointer:coarse){body.playing #reloadBtn{display:block}}
+#reloadBtn:active,#reloadBtn.on{background:rgba(140,100,20,.5);transform:none}
+#reloadBtn.off{opacity:.35}
+#reloadBtn i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px;border-radius:50%;border:2px solid rgba(255,255,255,.4);pointer-events:none;image-rendering:pixelated;
+  background:rgba(20,12,4,.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' shape-rendering='crispEdges'%3E%3Cg fill='%23e8d090'%3E%3Crect x='4' y='1' width='6' height='1'/%3E%3Crect x='2' y='2' width='2' height='1'/%3E%3Crect x='10' y='2' width='2' height='1'/%3E%3Crect x='1' y='3' width='1' height='2'/%3E%3Crect x='12' y='3' width='1' height='3'/%3E%3Crect x='1' y='9' width='1' height='2'/%3E%3Crect x='2' y='11' width='2' height='1'/%3E%3Crect x='10' y='11' width='2' height='1'/%3E%3Crect x='4' y='12' width='6' height='1'/%3E%3Crect x='12' y='9' width='1' height='2'/%3E%3Crect x='0' y='5' width='3' height='1'/%3E%3Crect x='1' y='6' width='1' height='1'/%3E%3Crect x='11' y='8' width='3' height='1'/%3E%3Crect x='12' y='7' width='1' height='1'/%3E%3C/g%3E%3Crect x='6' y='4' width='2' height='1' fill='%23ffe9a0'/%3E%3Crect x='6' y='5' width='2' height='4' fill='%23c09a40'/%3E%3Crect x='6' y='9' width='2' height='1' fill='%237a5a20'/%3E%3C/svg%3E") center/26px 26px no-repeat}
 #sG b{position:absolute;right:-6px;top:-6px;min-width:22px;padding:4px 5px;font-size:9px;font-weight:normal;text-align:center;color:#fff;background:#8a0c0c;box-shadow:0 0 0 2px #120000;pointer-events:none}
 
 /* ---- HUD ---- */

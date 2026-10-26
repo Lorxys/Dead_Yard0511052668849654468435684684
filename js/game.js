@@ -21,6 +21,9 @@ const Game = {
     const bar = this.hpBar = document.getElementById('hpbar');
     this.hpFill = bar.querySelector('.fill'); this.hpGhost = bar.querySelector('.ghost'); this.hpText = document.getElementById('hptext');
     this.gStick = document.getElementById('sG'); this.gCount = document.getElementById('nadeCount');
+    // bouton Recharger (tactile) : un appui = une demande de rechargement
+    this.reloadBtn = document.getElementById('reloadBtn');
+    this.reloadBtn.addEventListener('pointerdown', e => { e.preventDefault(); Input.reloadQueue = true; });
     // panneau d'achat devant une machine à atout + icônes des atouts possédés
     this.buy = { box: document.getElementById('buy'), name: document.getElementById('buyName'), btn: document.getElementById('buyBtn'), label: document.getElementById('buyLabel'), info: document.getElementById('buyInfo'), price: document.getElementById('buyPrice') };
     this.buy.btn.addEventListener('pointerdown', e => { e.preventDefault(); Input.buyQueue = true; });
@@ -103,7 +106,7 @@ const Game = {
     this.state = on ? 'pause' : 'play';
     document.getElementById('pause').classList.toggle('show', on);
     document.getElementById('pause').classList.remove('ask');
-    Input.mouse.down = false; Input.nadeQueue = null; Input.buyQueue = false;
+    Input.mouse.down = false; Input.nadeQueue = null; Input.buyQueue = false; Input.reloadQueue = false;
     if (on) Sound.setNear(null);
   },
   emit(type, data) { this.events.push({ type, ...data }); },
@@ -337,7 +340,7 @@ const Game = {
     }
     const q = Input.takeGrenade();
     const grenade = !q ? null : q.screen ? this.screenToRel(q.screen, p) : this.stickToRel(q.stick);
-    return { move: Input.getMove(), aim, fire: !!(aim && aim.fire), grenade, buy: Input.takeBuy() };
+    return { move: Input.getMove(), aim, fire: !!(aim && aim.fire), grenade, buy: Input.takeBuy(), reload: Input.takeReload() };
   },
   screenToRel(s, p) {
     const r = this.cv.getBoundingClientRect(), k = this.W / r.width;
@@ -494,6 +497,7 @@ const Game = {
     this.updateSounds(p, dt);
     this.hud.nades.textContent = '×' + p.grenades;
     this.gCount.textContent = p.grenades; this.gStick.classList.toggle('empty', !p.grenades);
+    this.reloadBtn.classList.toggle('off', p.reload > 0 || p.mag >= p.magSize || !p.reserve);   // grisé s'il n'y a rien à recharger
     // caméra sur le joueur local (centrée si la map est plus petite que l'écran) + secousse
     const mw = GameMap.W * CFG.TILE, mh = GameMap.H * CFG.TILE, sk = this.shake > 0 ? 3 : 0;
     this.cam.x = Math.round((mw <= this.W ? (mw - this.W) / 2 : Math.max(0, Math.min(mw - this.W, p.x - this.W / 2))) + (Math.random() - 0.5) * sk);
