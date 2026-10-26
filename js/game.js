@@ -489,9 +489,15 @@ const Game = {
     this.hud.wave.textContent = 'Vague ' + this.wave; this.hud.score.textContent = p.score;   // points à dépenser
     // arme en main (en bas à droite) : nom, logo (redessiné quand elle change), balles dans le chargeur | balles en réserve
     const H = this.hud;
-    if (H.iconOf !== p.weapon) {
-      const g = H.icon.getContext('2d'); g.clearRect(0, 0, 20, 8); H.iconOf = p.weapon;
-      Sprites.gun((col, x, y, w, h) => { g.fillStyle = col; g.fillRect(1 + x, 4 + y, w, h); }, 0, null, false, p.weapon, 0);
+    // dessiné directement en x5 sur le canvas (ombre noire, halo violet si améliorée), sans mise à l'échelle CSS
+    const key = p.weapon + p.upgraded;
+    if (H.iconOf !== key) {
+      const g = H.icon.getContext('2d'), S = 5; g.clearRect(0, 0, 100, 40); H.iconOf = key;
+      const draw = (dx, dy, tint) => Sprites.gun((col, x, y, w, h) => { g.fillStyle = tint || col; g.fillRect((1 + x) * S + dx, (4 + y) * S + dy, w * S, h * S); }, 0, null, false, p.weapon, 0);
+      if (p.upgraded) [[-2, 0], [2, 0], [0, -2], [0, 2]].forEach(([dx, dy]) => draw(dx, dy, '#b060ff'));
+      draw(2, 2, '#000'); draw(0, 0);
+      // reflet clair sur le dessus pour que l'arme se détache du fond sombre
+      Sprites.gun((col, x, y, w) => { g.fillStyle = 'rgba(255,240,210,.25)'; g.fillRect((1 + x) * S, (4 + y) * S, w * S, 1); }, 0, null, false, p.weapon, 0);
     }
     H.weapon.classList.toggle('up', p.upgraded); H.weapon.classList.toggle('reloading', p.reload > 0);
     H.name.textContent = p.gun.name; H.mag.textContent = p.mag; H.reserve.textContent = p.reserve;

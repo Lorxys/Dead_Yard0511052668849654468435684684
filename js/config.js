@@ -16,7 +16,7 @@ const CFG = {
     rifle:   { name: 'M1 Garand',  mag: 14, reserve: 140, rate: 0.24, dmg: 1,   speed: 230, range: 0.7,  spread: 0.08 },
     pistol:  { name: 'Colt M1911', mag: 18, reserve: 96,  rate: 0.28, dmg: 1.8, speed: 220, range: 0.65, spread: 0.05 },
     smg:     { name: 'Thompson',   mag: 40, reserve: 180, rate: 0.18, dmg: 1.5, far: 0.4, fall: [40, 110], speed: 230, range: 0.6, spread: 0.16 },
-    ar:      { name: 'StG 44',     mag: 50, reserve: 240, rate: 0.22, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
+    ar:      { name: 'StG 44',     mag: 50, reserve: 240, rate: 0.176, dmg: 1.3, speed: 260, range: 0.85, spread: 0.07 },
     shotgun: { name: 'Trench Gun', mag: 10, reserve: 90,  rate: 0.8,  dmg: 1.6, far: 0.2, fall: [20, 75], pellets: 7, speed: 220, range: 0.38, spread: 0.55 },
     sniper:  { name: 'Kar98k',     mag: 8,  reserve: 120, rate: 1.2,  dmg: 9,   speed: 420, range: 0.6,  spread: 0 }
   },
