@@ -5,7 +5,8 @@ const CFG = {
   MENU_W: 480,     // largeur logique du décor du menu
   WORLD_W: 640,    // largeur logique de la carte du monde (choix du front)
   // vie : 150 PV max ; après regenDelay s sans être touché, la vie remonte de regenRate PV/s jusqu'au max
-  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'rifle' },
+  // score = points au départ de la partie (100000 temporaire, pour tester la boîte mystère et les portes ; remettre à 0 ensuite)
+  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'rifle', score: 100000 },
   // armes : rate = délai entre deux tirs (s), dmg = dégâts par balle de près, far = dégâts au-delà de fall[1] px
   // (baisse progressive entre fall[0] et fall[1]), pellets = plombs par tir, spread = dispersion (rad),
   // speed = vitesse des balles (px/s), range = durée de vie des balles (s)

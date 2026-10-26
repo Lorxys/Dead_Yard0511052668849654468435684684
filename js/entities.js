@@ -11,7 +11,7 @@ function moveEntity(e, dx, dy) {
 
 class Player {
   constructor(id, x, y) {
-    this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = 0;
+    this.id = id; this.x = x; this.y = y; this.r = 4; this.alive = true; this.kills = 0; this.score = CFG.PLAYER.score;
     this.grenades = CFG.GRENADE.start; this.gcd = 0; this.perks = {}; this.upgraded = false; this.weapon = CFG.PLAYER.weapon;
     this.hp = this.maxHp = CFG.PLAYER.hp; this.sinceHit = Infinity; this.a = Math.PI / 2; this.cd = 0; this.hurtT = 0; this.flash = 0; this.walk = 0;
   }
