@@ -167,3 +167,6 @@ body.playing #hud{padding-right:calc(env(safe-area-inset-right,0px) + 54px)}
   filter:drop-shadow(3px 3px 0 #1a0000) drop-shadow(4px 4px 0 #000) drop-shadow(0 0 16px rgba(170,0,0,.5))}
 #pause h1 .drip{top:80%}
 #pause .actions{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
+/* confirmation avant de quitter : avertissement en haut, Confirmer / Retour */
+#pause .warn{color:#e8dcc0;font-size:clamp(9px,2.2vw,13px);line-height:2.2;text-shadow:2px 2px 0 #000}
+#pause:not(.ask) .warn,#pause:not(.ask) .confirm,#pause.ask h1,#pause.ask .actions:not(.confirm){display:none}

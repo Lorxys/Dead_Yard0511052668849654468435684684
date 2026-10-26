@@ -114,7 +114,8 @@ const WorldScene = {
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const d = dither(x * 3 + y, y * 5 + x); if (d < 0.18) P('#4c3e2a', x, y); else if (d > 0.88) P('#66553a', x, y); }
     });
     this.seaPat = pat(12, 6, P => { P('#0f0c0b', 0, 0, 12, 6); P('#17110f', 0, 2, 5, 1); P('#17110f', 6, 5, 4, 1); });
-    this.base = this.fit(this.VIEW.lon, this.VIEW.lat, 0, 0, W, H, 4);
+    // vue d'ensemble sous le titre et au-dessus de l'indication du bas, pour que les textes ne cachent pas la carte
+    this.base = this.fit(this.VIEW.lon, this.VIEW.lat, 0, H * 0.14, W, H * 0.77, 4);
     this.cam = this.sel ? this.countryCam(this.sel) : { ...this.base }; this.t = 1;
   },
   // caméra qui fait tenir une zone [lon0,lon1]x[lat0,lat1] dans le rectangle (x,y,w,h) de l'écran

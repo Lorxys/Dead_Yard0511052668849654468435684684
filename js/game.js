@@ -37,7 +37,11 @@ const Game = {
     // réglages en jeu : pause, puis reprendre ou quitter vers la carte du monde (Échap ou P au clavier)
     document.getElementById('pauseBtn').onclick = () => this.pause(true);
     document.getElementById('resume').onclick = () => this.pause(false);
-    document.getElementById('quit').onclick = () => this.toWorld();
+    // quitter demande confirmation : la partie en cours sera perdue
+    const pauseBox = document.getElementById('pause');
+    document.getElementById('quit').onclick = () => pauseBox.classList.add('ask');
+    document.getElementById('quitNo').onclick = () => pauseBox.classList.remove('ask');
+    document.getElementById('quitYes').onclick = () => this.toWorld();
     addEventListener('keydown', e => {
       if (e.repeat || (e.code !== 'Escape' && e.code !== 'KeyP')) return;
       if (this.state === 'play' || this.state === 'pause') this.pause(this.state === 'play');
@@ -107,6 +111,7 @@ const Game = {
     if (on && this.state !== 'play') return;
     this.state = on ? 'pause' : 'play';
     document.getElementById('pause').classList.toggle('show', on);
+    document.getElementById('pause').classList.remove('ask');
     Input.mouse.down = false; Input.nadeQueue = null; Input.buyQueue = false;
     if (on) Sound.setNear(null);
   },
