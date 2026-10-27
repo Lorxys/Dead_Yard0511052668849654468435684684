@@ -310,7 +310,7 @@ const Game = {
         if (!b.pierce) return false;
         b.pierce--; (b.hits = b.hits || []).push(z.id);
       }
-      if (b.life <= 0) return false;
+      if (b.life <= 0) { if (b.splash) this.splash(b, null); return false; }   // rayon : explose au sol en bout de course
       if (GameMap.solidAt(b.x, b.y)) { if (b.splash) this.splash(b, null); else this.emit('impact', { x: b.x, y: b.y }); return false; }
       return true;
     });

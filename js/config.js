@@ -56,8 +56,8 @@ const CFG = {
     mg34:     { cls: 'lmg',     name: 'MG 34',          mag: 65, reserve: 210, rate: 0.09,  dmg: 1,   slow: 0.82, speed: 270, range: 0.85, spread: 0.11 },
     m1919:    { cls: 'lmg',     name: 'Browning M1919', mag: 75, reserve: 225, rate: 0.1,   dmg: 1.2, slow: 0.78, speed: 265, range: 0.85, spread: 0.1 },
     dp28:     { cls: 'lmg',     name: 'DP-28',          mag: 65, reserve: 210, rate: 0.12,  dmg: 1.35, slow: 0.85, speed: 265, range: 0.85, spread: 0.09 },
-    // arme spéciale : rayon vert qui explose à l'impact (blesse les zombies autour), rare à la boîte
-    ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.63, speed: 190, range: 1, spread: 0.02 }
+    // arme spéciale : rayon vert qui explose à l'impact ou au sol en bout de portée (blesse les zombies autour), rare à la boîte
+    ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.63, speed: 190, range: 0.7, spread: 0.02 }
   },
   // boîte mystère : arme au hasard (toutes sauf celle qu'on a en main, rare = moins de chances ; le pistolet à rayons sort avec une lueur et une musique légendaires) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
   BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12,
