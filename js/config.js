@@ -6,7 +6,7 @@ const CFG = {
   WORLD_W: 640,    // largeur logique de la carte du monde (choix du front)
   // vie : 150 PV max ; après regenDelay s sans être touché, la vie remonte de regenRate PV/s jusqu'au max
   // score = points au départ de la partie (100000 temporaire, pour tester la boîte mystère et les portes ; remettre à 0 ensuite)
-  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'pistol', score: 100000 },
+  PLAYER: { speed: 52, hp: 150, regenDelay: 3, regenRate: 20, weapon: 'ray', score: 100000 },
   RELOAD: 2.5,       // durée d'un rechargement (s), lancé tout seul quand le chargeur est vide
   // armes : rate = délai entre deux tirs (s), dmg = dégâts par balle de près, far = dégâts au-delà de fall[1] px
   // (baisse progressive entre fall[0] et fall[1]), pellets = plombs par tir, spread = dispersion (rad),
@@ -57,7 +57,7 @@ const CFG = {
     m1919:    { cls: 'lmg',     name: 'Browning M1919', mag: 75, reserve: 225, rate: 0.1,   dmg: 1.2, slow: 0.78, speed: 265, range: 0.85, spread: 0.1 },
     dp28:     { cls: 'lmg',     name: 'DP-28',          mag: 65, reserve: 210, rate: 0.12,  dmg: 1.35, slow: 0.85, speed: 265, range: 0.85, spread: 0.09 },
     // arme spéciale : rayon vert qui explose à l'impact (blesse les zombies autour), rare à la boîte
-    ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.35, speed: 190, range: 1, spread: 0.02 }
+    ray:      { cls: 'ray',     name: 'Pistolet à rayons', mag: 40, reserve: 220, rate: 0.3, dmg: 6,  splash: { r: 20, dmg: 4 }, rare: 0.63, speed: 190, range: 1, spread: 0.02 }
   },
   // boîte mystère : arme au hasard (toutes sauf celle qu'on a en main, rare = moins de chances ; le pistolet à rayons sort avec une lueur et une musique légendaires) ; elle tourne roll s puis attend keep s qu'on vienne la prendre
   BOX: { name: 'Boîte Mystère', info: 'Obtenez une arme aléatoire', color: '#8ad4ff', price: 950, roll: 4, keep: 12,
